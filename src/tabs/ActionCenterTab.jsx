@@ -101,6 +101,7 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
                 natal_chart_notes: profile.natal_chart_notes,
                 goals_progress: goalsProgress || undefined,
                 voice_sample: profile.content_voice_sample || undefined,
+                personality_profile: profile.personality_profile || undefined,
               }
             : undefined,
         }),

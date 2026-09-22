@@ -92,6 +92,82 @@ state plus an internal check); and its fire-and-forget message-save calls
 (correct pattern — a pure side effect with no `setState`-after-unmount
 risk).
 
+## Personality data wired into astrology, finance, and content topics — one thing I didn't build
+Three of these were real, groundable refinements. The fourth wasn't.
+
+**What I didn't build**: "posting windows based on astrological success."
+There's no real relationship between planetary positions and social media
+algorithm performance, and no data connecting them. Wiring "Mercury's in
+a good sign" to "post at 3pm" would be a fabricated correlation dressed
+up as a feature — exactly the kind of thing this whole build has been
+careful to avoid. `PostingCalendar.jsx` already has a real posting-time
+system grounded in actual platform research, explicitly labeled as
+general patterns, not personalized or guaranteed — left that alone.
+
+**What I built**: audited which endpoints already had `personality_profile`
+wired in (only `coach.js`, added last round) versus which didn't
+(`astrology.js`, `astrology-chat.js`, `content.js`, `content-ideas.js` —
+all four had zero). Closed the gap in all four:
+
+- **Astrology** (`astrology.js`, both daily readings and scenario advice,
+  plus `astrology-chat.js` follow-up chat): personality data appended as
+  optional context, explicit instruction that most readings should never
+  mention it — only when it genuinely sharpens a specific reading. Also
+  caught and fixed a real gap in `astrology-chat.js`: the sign-only
+  fallback path (for charts without full degree data) returned early,
+  before personality data would've been attached — anyone without a
+  complete natal chart pasted in was silently missing it entirely.
+- **Finance**: already covered via `coach.js`, which powers Impulse Pause
+  and general money conversation through Action Center — verified this
+  was already correct rather than assuming.
+- **Content topics** (`content-ideas.js`): the strongest real fit — let
+  personality data bias which of the 5 idea *formats/angles* feel natural
+  (an individuality-oriented type leaning toward confession/hot-take,
+  a structure-oriented type toward tutorials/listicles), explicitly told
+  this should shape the MIX, never become a topic itself ("nobody wants
+  to read '5 things about being an Enneagram 4'"). Same restrained
+  treatment added to `content.js`'s actual generation, explicitly
+  subordinate to the real voice sample, never overriding it.
+
+Verified all four callers (`FullChartReading.jsx`, `ChatFollowUp.jsx`,
+`IdeaGenerator.jsx`, `ContentEngine.jsx`) already send the whole profile
+object, so no frontend wiring was needed — confirmed each one directly
+rather than assumed. Ran all five endpoints with real personality data
+before shipping; all reached the API cleanly.
+
+## Personality profile field added (MBTI, Enneagram, Human Design, etc.) + a real bug caught while building it
+You pulled real self-reported data from a Mirror profile — Western +
+Vedic Big 3, Life Path, Human Design, Mayan/Chinese zodiac, MBTI,
+Enneagram, DISC, Big Five. Didn't wire the app around one snapshot page
+with no methodology behind it; instead added a real profile field (same
+pattern as natal chart notes — paste it once, real values, never
+guessed) so the coach and full chart reading work from your actual data.
+
+- New `personality_profile` column (single free-text field, since which
+  frameworks someone actually uses varies and shouldn't require a schema
+  change to add a new one) — **run the schema migration**.
+- New Settings field. Threaded through every coach context-construction
+  site (Action Center, Content Coach, Impulse Pause) with an explicit
+  instruction: reference it only when it genuinely sharpens the answer,
+  never force it into a response where it doesn't fit — same restraint
+  already applied to goals and voice sample elsewhere in this build.
+- Full Chart Reading gets a new optional `personality_notes` section —
+  real connections between your personality data and your actual chart
+  when something genuinely lines up, explicitly told to omit the field
+  entirely rather than guess when no personality data is given.
+
+**Caught a real bug while building this**: `full-chart.js` had its own
+locally-defined list of "extra" chart points (Lilith, North Node,
+Fortune) that didn't match `_ephemeris.js`'s own canonical list used by
+the parser itself — missing both Ascendant and South Node. That meant
+your Ascendant was being silently excluded from both the "enough data to
+generate a reading" check and the actual placements shown, even though
+it parses correctly and is genuinely in your chart. Fixed by exporting
+the canonical list from `_ephemeris.js` and having `full-chart.js` use
+that directly instead of maintaining a second, driftable copy. Verified
+against your real chart before and after: all 15 real points (including
+Ascendant and South Node) are now correctly counted.
+
 ## Restructured three of four bottom-nav tabs into nested sub-pages
 Blueprint, Content, and Finance were each one long scrolling page stacking
 3-5 unrelated components. Broke each into genuine sub-pages, navigated by

@@ -34,6 +34,7 @@ export default function ContentCoach({ profile }) {
                 pronoun: profile.pronoun,
                 goals: profile.core_goals,
                 voice_sample: profile.content_voice_sample,
+                personality_profile: profile.personality_profile,
               }
             : undefined,
         }),

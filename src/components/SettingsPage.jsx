@@ -12,6 +12,12 @@ const FIELDS = [
     type: "textarea",
     section: "About you",
   },
+  {
+    key: "personality_profile",
+    label: "Personality profile (MBTI, Enneagram, Human Design, DISC, Big Five, Life Path, etc. — paste whatever you've got, one per line) — the coach and full chart reading will use real values instead of guessing",
+    type: "textarea",
+    section: "About you",
+  },
   { key: "birth_date", label: "Birth date", type: "date", section: "Birth data" },
   { key: "birth_time", label: "Birth time", type: "time", section: "Birth data" },
   { key: "birth_location", label: "Birth location", type: "text", section: "Birth data" },

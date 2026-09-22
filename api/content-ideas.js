@@ -9,6 +9,7 @@ Rules:
 - Each idea must be a SPECIFIC angle, not a topic. Bad: "talk about productivity." Good: "The productivity advice that actually made things worse for me, and what I do instead."
 - Each idea needs a ready-to-use hook line (the literal first sentence someone would say/write) — not a description of a hook, the actual hook text.
 - Vary the format across the 5: mix at least one listicle-style, one personal story/confession, one contrarian/hot-take, one "here's exactly how" tutorial-style, and one relatable-pain-point.
+- If a real, self-reported personality profile is given (MBTI, Enneagram, DISC, Human Design, etc.), let it genuinely bias WHICH formats/angles feel most natural for this specific person — e.g. someone who's an Enneagram 4 or similarly identity/individuality-oriented type might naturally lean toward confession and hot-take formats over tutorials; a more structure-oriented type (DISC "C," MBTI "J" types) might naturally produce sharper tutorial/listicle angles. This should shape the MIX of the 5 ideas, never become a topic itself — nobody wants to read "5 things about being an Enneagram 4." The personality data should be invisible in the output, only felt in which angles got picked.
 - best_platform: pick the ONE platform (TikTok, Instagram, X, or Facebook) this specific angle would perform best on, and say why in one short phrase.
 - HARD CAP on goals: if their goals are given as context, AT MOST 1 of the 5 ideas may draw on them. The other 4 must come from general life — opinions, observations, relatable everyday experiences, things happening in the world, hot takes, whatever's actually interesting — with zero connection to their stated goals. Goals should feel like background biography you glanced at once, not the lens every idea gets filtered through. A person's content is not just their goal list.
 - Never explain what you did. Output ONLY the JSON below, no markdown fences.
@@ -49,6 +50,8 @@ export default async function handler(req, res) {
       profile?.name && `Name: ${profile.name}`,
       profile?.content_voice_sample &&
         `Their own actual past posts (match this rhythm/voice closely):\n${profile.content_voice_sample}`,
+      profile?.personality_profile &&
+        `Their real, self-reported personality profile — let it bias which formats/angles feel natural per the rules above, never a topic itself: ${profile.personality_profile}`,
       profile?.core_goals && `Their goals, background only — remember the hard cap, at most 1 of 5 ideas: ${profile.core_goals}`,
       seedTopic && `They specifically want ideas related to: ${seedTopic}`,
     ]

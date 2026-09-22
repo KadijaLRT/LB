@@ -38,7 +38,7 @@ export const BODIES = [
 // silently dropped everywhere — this list is for PARSING their chart text
 // only, never for computing where they are today.
 const EXTRA_NATAL_POINTS = ["Lilith", "North Node", "South Node", "Fortune", "Ascendant"];
-const NATAL_POINTS = [...BODIES, ...EXTRA_NATAL_POINTS];
+export const NATAL_POINTS = [...BODIES, ...EXTRA_NATAL_POINTS];
 
 const DEG = Math.PI / 180;
 const RAD = 180 / Math.PI;

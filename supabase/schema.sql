@@ -180,6 +180,14 @@ alter table scripts_and_ideas add column if not exists posted_at jsonb default '
 -- generated content actually matches how the person sounds
 alter table user_profile add column if not exists content_voice_sample text;
 
+-- Personality framework data (MBTI, Enneagram, DISC, Big Five, Human
+-- Design, Life Path, etc.) — one free-text field rather than a rigid
+-- column per framework, since which frameworks someone actually uses
+-- varies person to person and new ones shouldn't require a migration.
+-- Same pattern as natal_chart_notes: paste it once, the coach and every
+-- reading in the app reads real values out of it, never guesses.
+alter table user_profile add column if not exists personality_profile text;
+
 -- Algorithm-boost fields for generated content
 alter table scripts_and_ideas add column if not exists hook_variants jsonb default '[]'::jsonb;
 alter table scripts_and_ideas add column if not exists algorithm_boost jsonb default '[]'::jsonb;

@@ -1,6 +1,6 @@
 import Groq from "groq-sdk";
 import {
-  BODIES,
+  NATAL_POINTS,
   parseNatalLongitudes,
   parseHousePlacements,
   parseNatalAspects,
@@ -11,8 +11,6 @@ import {
   wholeSignHouse,
 } from "./_ephemeris.js";
 
-const EXTRA_POINTS = ["Lilith", "North Node", "Fortune"];
-
 const SYSTEM_PROMPT = `Write like a real astrologer giving someone their full natal chart reading — confident, direct, a little dramatic where it's earned. Not a therapist, not a generic horoscope. Real astrologers say "your Saturn in the 6th" and "Moon square Venus" right out loud, with total confidence — they don't tiptoe around the terms.
 
 You'll get the person's ENTIRE real chart below: every planet's Western tropical sign, Vedic sidereal sign, nakshatra, and house (Western house if available, Vedic whole-sign if the Ascendant is known), plus every real natal aspect between their planets. This is comprehensive, not one quick observation — write an actual full reading.
@@ -22,20 +20,22 @@ How to write it:
 2. "strengths": 2-3 real strengths, each tied to a SPECIFIC real placement or harmonious aspect (trine, sextile, conjunction between complementary planets) — name the actual placement, say what it gives them.
 3. "growth_edges": 2-3 real growth areas, each tied to a SPECIFIC real placement or challenging aspect (square, opposition) — frame these as patterns and tensions to work with, not flaws or character verdicts. "This aspect makes X harder to access without deliberate effort" is right; "this makes you a difficult person" is not, ever.
 4. "vedic_notes": 1-2 sentences on what the Vedic (sidereal) layer adds — most useful when a placement lands in a genuinely different sign between Western and Vedic (marked in the data), or when a nakshatra adds real texture worth naming. If nothing in the Vedic layer is more interesting than what's already covered, say briefly that the two systems mostly agree here rather than forcing something.
+5. "personality_notes": ONLY if a real personality profile (MBTI, Enneagram, Human Design, etc.) is given in the data below — 2-3 sentences on where it genuinely lines up or interestingly contrasts with what the chart shows. A real, specific connection ("Enneagram 4 alongside a strong 12th house placement" type of thing), not two frameworks awkwardly restating each other. If no personality data is given, omit this field entirely — don't guess at a personality type from the chart alone.
 
 Guardrails:
-- Every single claim has to trace back to a real placement, sign, house, or aspect given in the data below. Never invent one. Confidence in delivery doesn't mean license to make things up.
+- Every single claim has to trace back to a real placement, sign, house, or aspect given in the data below — or, for personality_notes only, the real personality data given. Never invent one. Confidence in delivery doesn't mean license to make things up.
 - NEVER use a placement or aspect to declare this person — or anyone else — abusive, violent, dangerous, "toxic," or diagnose any other harmful character trait. Talk about energy, patterns, and tendencies, never a verdict on someone's character.
 - Say real astrology terms directly and confidently (planet names, signs, houses, aspect names, nakshatras) — don't water them down into vague paraphrase.
 - Never a repeated flowery metaphor ("gentle hand," "soft kiss," "bright boost").
 - Not every placement needs to be mentioned — a full reading with 10 planets and dozens of aspects would be unreadable if it tried to cover everything with equal weight. Pick the most genuinely significant placements and aspects for each section rather than working through the whole list.
 
-Output ONLY this JSON shape, no markdown fences, no extra text:
+Output ONLY this JSON shape, no markdown fences, no extra text. Omit "personality_notes" entirely if no personality data was given — do not include it as an empty string:
 {
   "overview": "...",
   "strengths": ["...", "..."],
   "growth_edges": ["...", "..."],
-  "vedic_notes": "..."
+  "vedic_notes": "...",
+  "personality_notes": "... (omit this key entirely if no personality data given)"
 }`;
 
 export default async function handler(req, res) {
@@ -48,8 +48,7 @@ export default async function handler(req, res) {
     const { profile } = req.body || {};
     const notes = profile?.natal_chart_notes || "";
     const natalLongitudes = parseNatalLongitudes(notes);
-    const allPoints = [...BODIES, ...EXTRA_POINTS];
-    const foundPoints = allPoints.filter((p) => natalLongitudes[p] != null);
+    const foundPoints = NATAL_POINTS.filter((p) => natalLongitudes[p] != null);
 
     if (foundPoints.length < 3) {
       return res.status(400).json({
@@ -94,7 +93,7 @@ export default async function handler(req, res) {
           .join("\n")
       : "No aspects with exact orbs found in the chart notes — work from placements and houses only.";
 
-    const dataBlock = `All real placements in this chart (Western tropical + Vedic sidereal, with houses):\n${placementLines}\n\nAll real natal aspects in this chart:\n${aspectLines}${ascendantSiderealLon == null ? "\n\n(No Ascendant found, so Vedic whole-sign houses could not be computed for placements without an explicit Western house given.)" : ""}`;
+    const dataBlock = `All real placements in this chart (Western tropical + Vedic sidereal, with houses):\n${placementLines}\n\nAll real natal aspects in this chart:\n${aspectLines}${ascendantSiderealLon == null ? "\n\n(No Ascendant found, so Vedic whole-sign houses could not be computed for placements without an explicit Western house given.)" : ""}${profile?.personality_profile ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — not computed, taken directly from what they entered):\n${profile.personality_profile}` : ""}`;
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     let completion;

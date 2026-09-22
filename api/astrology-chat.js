@@ -20,7 +20,10 @@ function buildGroundingBlock(area, profile) {
     const positionsLine = Object.entries(todayPositions)
       .map(([b, { sign }]) => `${b} in ${sign}`)
       .join(", ");
-    return `NOTE: only sign-level data available, no exact degrees — don't claim precise timing or orbs.\nNatal: Sun ${profile?.sun_sign || "?"}, Moon ${profile?.moon_sign || "?"}, Rising ${profile?.rising_sign || "?"}\nToday's transiting signs: ${positionsLine}`;
+    const personalityBlock = profile?.personality_profile
+      ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — reference ONLY if genuinely relevant, never force it in): ${profile.personality_profile}`
+      : "";
+    return `NOTE: only sign-level data available, no exact degrees — don't claim precise timing or orbs.\nNatal: Sun ${profile?.sun_sign || "?"}, Moon ${profile?.moon_sign || "?"}, Rising ${profile?.rising_sign || "?"}\nToday's transiting signs: ${positionsLine}${personalityBlock}`;
   }
 
   const allAspects = currentTransitAspects(natalLongitudes, now, 5);
@@ -47,7 +50,11 @@ function buildGroundingBlock(area, profile) {
     ? `\n\nThis chart's own permanent natal aspects (core wiring, not today's transits): ${relevantNatal.map((a) => `${a.bodyA} ${a.aspect} ${a.bodyB}`).join(", ")}`
     : "";
 
-  return `Real computed current aspects:\n${chosen.map((a) => `Transiting ${a.transitBody} ${a.aspect} natal ${a.natalBody} — ${a.trend}`).join("\n")}${houseBlock}${natalBlock}`;
+  const personalityBlock = profile?.personality_profile
+    ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — reference ONLY if genuinely relevant to what they're asking, never force it in): ${profile.personality_profile}`
+    : "";
+
+  return `Real computed current aspects:\n${chosen.map((a) => `Transiting ${a.transitBody} ${a.aspect} natal ${a.natalBody} — ${a.trend}`).join("\n")}${houseBlock}${natalBlock}${personalityBlock}`;
 }
 
 export default async function handler(req, res) {

@@ -51,6 +51,11 @@ function formatContext(context) {
   if (context.goals) lines.push(`Their goals: ${context.goals}`);
   if (context.goals_progress) lines.push(`Real progress right now: ${context.goals_progress}`);
   if (context.natal_chart_notes) lines.push(`Chart notes (reference only if directly useful): ${context.natal_chart_notes}`);
+  if (context.personality_profile) {
+    lines.push(
+      `Their personality profile (MBTI, Enneagram, Human Design, etc. — real, self-reported. Reference only when it genuinely sharpens the answer, e.g. explaining why a certain approach might land better for them; never force it into responses where it doesn't fit):\n${context.personality_profile}`
+    );
+  }
   if (context.sun || context.moon || context.rising) {
     lines.push(`Sun ${context.sun || "?"}, Moon ${context.moon || "?"}, Rising ${context.rising || "?"}.`);
   }

@@ -245,7 +245,10 @@ export default async function handler(req, res) {
     }
 
     const systemPrompt = scenario?.trim() ? buildScenarioPrompt(area, scenario.trim()) : buildStandardPrompt(area);
-    const userContent = dataBlock;
+    const personalityBlock = profile?.personality_profile
+      ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — reference ONLY if it genuinely sharpens this specific reading, never force it in; most readings should not mention it at all):\n${profile.personality_profile}`
+      : "";
+    const userContent = dataBlock + personalityBlock;
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const completion = await groq.chat.completions.create({
