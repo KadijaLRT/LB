@@ -55,6 +55,11 @@ export default function AstroSnapshot({ sun, moon, rising, natalChartNotes }) {
         <span className={`w-2.5 h-2.5 rounded-full ${ELEMENT_COLOR[element] || "bg-muted"}`} />
       </div>
       <p className="font-display text-lg text-cream leading-snug">{vibe}</p>
+      {transit && transit.personalized === false && (
+        <p className="text-[11px] text-muted italic">
+          General pattern for today — the personalized read didn't come through this time, try refreshing.
+        </p>
+      )}
       {error && <p className="text-xs text-fire">{error}</p>}
       {(sun || moon || rising) && (
         <div className="flex gap-4 text-xs text-muted pt-2 border-t border-line">

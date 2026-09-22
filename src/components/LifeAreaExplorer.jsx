@@ -3,6 +3,7 @@ import { Briefcase, Users, Heart, Wallet, RefreshCw, Loader2, Lightbulb } from "
 import { getInsight, saveInsight } from "../lib/db.js";
 import { localDateString } from "../lib/date.js";
 import ChatFollowUp from "./ChatFollowUp.jsx";
+import FavorableWindows from "./FavorableWindows.jsx";
 
 const AREAS = [
   { key: "career", label: "Career", icon: Briefcase },
@@ -147,6 +148,8 @@ export default function LifeAreaExplorer({ profile }) {
         {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
         {current ? "Regenerate for today" : "Generate today's reading"}
       </button>
+
+      <FavorableWindows profile={profile} area={active} />
 
       {/*
         Merged "Ask about a specific situation" into this — they were the

@@ -280,6 +280,61 @@ export function currentTransitAspects(natalLongitudes, transitDate = new Date(),
   return results.sort((a, b) => a.orb - b.orb);
 }
 
+// Real transit-to-natal aspects for exactly ONE date (no trend, just the
+// snapshot) — the building block for scanning a range of days, since
+// currentTransitAspects above is built around "today plus a look-ahead
+// trend," not a per-day scan across many dates.
+function transitAspectsOnDate(natalLongitudes, date) {
+  const results = [];
+  for (const transitBody of BODIES) {
+    const lon = eclipticLongitude(transitBody, date);
+    for (const [natalBody, natalLon] of Object.entries(natalLongitudes)) {
+      const sep = angularSeparation(lon, natalLon);
+      for (const asp of ASPECTS) {
+        const orb = Math.abs(sep - asp.angle);
+        if (orb <= asp.orb) {
+          results.push({ transitBody, natalBody, aspect: asp.name, orb: +orb.toFixed(2) });
+        }
+      }
+    }
+  }
+  return results;
+}
+
+// The classical "harmonious" aspects (trine, sextile) plus a conjunction
+// specifically from Jupiter or Venus — the traditional benefic planets in
+// Western astrology. This is real, centuries-old, widely-taught
+// convention, not a rule invented for this app. Square, opposition, and
+// conjunctions from other planets are left out — those are the
+// "friction"/neutral aspects, not the ones associated with ease or luck.
+const HARMONIOUS_ASPECTS = new Set(["trine", "sextile"]);
+const BENEFIC_TRANSIT_BODIES = new Set(["Jupiter", "Venus"]);
+function isFavorableAspect(a) {
+  if (HARMONIOUS_ASPECTS.has(a.aspect)) return true;
+  return a.aspect === "conjunction" && BENEFIC_TRANSIT_BODIES.has(a.transitBody);
+}
+
+// Scans a range of days starting today and returns which ones have a
+// real, tight, favorable (per the real convention above) transit aspect
+// to one of the given key natal bodies. This is the actual computation
+// behind "when does my chart favor something in this area" — fully
+// deterministic real astronomy, the same underlying math used everywhere
+// else in this app, just scanned across days instead of one snapshot.
+export function findFavorableWindows(natalLongitudes, keyBodies, startDate = new Date(), numDays = 14) {
+  const windows = [];
+  for (let i = 0; i < numDays; i++) {
+    const date = new Date(startDate.getTime() + i * 86400000);
+    const aspects = transitAspectsOnDate(natalLongitudes, date)
+      .filter((a) => keyBodies.includes(a.natalBody) && isFavorableAspect(a))
+      .sort((a, b) => a.orb - b.orb);
+    if (aspects.length) {
+      windows.push({ date, best: aspects[0], all: aspects });
+    }
+  }
+  // Tightest orb first — the most exact, most "active" day leads.
+  return windows.sort((a, b) => a.best.orb - b.best.orb);
+}
+
 function obliquityOfEcliptic(d) {
   return 23.4393 - 3.563e-7 * d; // degrees
 }

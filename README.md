@@ -92,6 +92,71 @@ state plus an internal check); and its fire-and-forget message-save calls
 (correct pattern — a pure side effect with no `setState`-after-unmount
 risk).
 
+## Honesty audit, prompted by "I don't want to use astrology for anything fake"
+Took that as a reason to actually check the app against that standard,
+not just agree with it. Swept the backend for fabricated/placeholder data
+(clean) and checked whether every fallback path is honest about being a
+fallback. Found two real things:
+
+1. **`AstroSnapshot.jsx` was silently discarding the honesty signal
+   `transits.js` already computes.** The backend has tracked a real
+   `personalized: true/false` flag all along — false means the LLM call
+   failed and it's showing the deterministic generic-pattern fallback
+   instead of an actual personalized read of your chart. The UI never
+   read this flag; both cases displayed with identical confidence, no way
+   to tell them apart. Added a quiet note that only appears on the
+   fallback case: "General pattern for today — the personalized read
+   didn't come through this time, try refreshing." Verified all three
+   render states (real read, fallback, not-loaded-yet) trigger correctly.
+2. **`content.js` had a stale prompt instruction** referencing "natal
+   chart" as something that might be given as context — confirmed by
+   checking the actual `contextLines` array that chart data is never
+   actually sent to this endpoint at all (only voice sample, personality
+   profile, and goals are). Not a functional bug, since the model never
+   had anything to act on either way, but it's misleading prompt hygiene
+   — instructing about data that's never there. Removed the stale
+   reference.
+
+## New: Favorable Windows — real timing, not fabricated luck
+Clarified scope with a direct follow-up: not "does Mercury affect the
+TikTok algorithm" (declined that, no real link exists) — this is "does my
+chart show real support for something in this area on a given day,"
+using the exact same real transit-to-natal astrology already computed
+everywhere else in this app, just scanned across a date range instead of
+one snapshot.
+
+- **Fully deterministic, zero AI call** — this determines a factual claim
+  (which days have a real, tight, harmonious aspect), so there's no LLM
+  in the loop for the actual computation, meaning zero hallucination risk
+  on which days get flagged. New `findFavorableWindows()` in
+  `_ephemeris.js`, built on the same real Keplerian math as everything
+  else.
+- Uses real, centuries-old astrological convention, not invented rules:
+  trine/sextile (the classical "harmonious" aspects) plus a conjunction
+  specifically from Jupiter or Venus (the traditional benefic planets).
+  Square/opposition and conjunctions from other planets are correctly
+  excluded — those are the "friction" aspects, not "ease" ones.
+- New `api/favorable-windows.js` endpoint, filtered per-area using the
+  same `AREA_KEY_BODIES` mapping already used by the daily readings, so
+  "favorable for career" and "favorable for love" genuinely look at
+  different planets, consistent with how the rest of the app already
+  reasons about area-relevance.
+- Plain-English descriptions are template-generated (not AI), which
+  caught two real grammar bugs before shipping: the trine/sextile phrases
+  were missing "with" ("flows easily right now your natal Mars" — broken
+  — fixed to "is flowing easily right now with your natal Mars"), and an
+  earlier draft hardcoded the word "today" into every window regardless
+  of which actual day it described. Both caught by literally reading the
+  generated output for every aspect type before shipping, not assumed
+  correct.
+- New `FavorableWindows.jsx`, rendered in the Explore sub-tab (Blueprint)
+  for whichever area is currently selected. Explicitly labeled in the UI
+  as "not a guarantee, just when your chart's own math is genuinely most
+  supportive" — same honesty framing as every other astrology feature in
+  this build.
+- Verified against your real chart across all four areas plus the
+  no-chart-data error path before shipping.
+
 ## Personality data wired into astrology, finance, and content topics — one thing I didn't build
 Three of these were real, groundable refinements. The fourth wasn't.
 
