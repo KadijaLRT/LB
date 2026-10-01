@@ -304,9 +304,7 @@ function transitAspectsOnDate(natalLongitudes, date) {
 // The classical "harmonious" aspects (trine, sextile) plus a conjunction
 // specifically from Jupiter or Venus — the traditional benefic planets in
 // Western astrology. This is real, centuries-old, widely-taught
-// convention, not a rule invented for this app. Square, opposition, and
-// conjunctions from other planets are left out — those are the
-// "friction"/neutral aspects, not the ones associated with ease or luck.
+// convention, not a rule invented for this app.
 const HARMONIOUS_ASPECTS = new Set(["trine", "sextile"]);
 const BENEFIC_TRANSIT_BODIES = new Set(["Jupiter", "Venus"]);
 function isFavorableAspect(a) {
@@ -314,18 +312,53 @@ function isFavorableAspect(a) {
   return a.aspect === "conjunction" && BENEFIC_TRANSIT_BODIES.has(a.transitBody);
 }
 
+// Square and opposition are classically "hard" or "challenging" aspects —
+// real friction, not absence of signal. They are NOT bad days, they are
+// high-energy/high-resistance days: good for pushing through something
+// that requires force, bad for anything that wants ease. Conjunctions from
+// non-benefic bodies (Mars, Saturn, Pluto, Uranus) are intense rather than
+// smooth, so they're grouped here too. This is a real, standard distinction
+// in Western astrology (classical "benefic/malefic" framing), not invented
+// for this app — it is surfaced, never hidden, because a hard aspect is
+// still real information about the day's energy.
+const HARD_ASPECTS = new Set(["square", "opposition"]);
+const INTENSE_TRANSIT_BODIES = new Set(["Mars", "Saturn", "Pluto", "Uranus"]);
+function isHighEnergyAspect(a) {
+  if (HARD_ASPECTS.has(a.aspect)) return true;
+  return a.aspect === "conjunction" && INTENSE_TRANSIT_BODIES.has(a.transitBody);
+}
+
+// Classifies any computed aspect into one of two honest buckets. Neither
+// bucket claims an outcome (success/failure) — both describe energy only:
+// "easy" = flows smoothly, low resistance; "high-energy" = real friction or
+// intensity, which can still be the right time to push through something
+// that needs force. Aspects that are neither (e.g. a Mercury conjunction,
+// which is neutral/blending rather than clearly easy or hard) are left
+// unclassified and excluded from windows — we only ever report what the
+// convention actually supports a claim about.
+function classifyAspect(a) {
+  if (isFavorableAspect(a)) return "easy";
+  if (isHighEnergyAspect(a)) return "high-energy";
+  return null;
+}
+
 // Scans a range of days starting today and returns which ones have a
-// real, tight, favorable (per the real convention above) transit aspect
+// real, tight transit aspect (easy OR high-energy — both are real signal)
 // to one of the given key natal bodies. This is the actual computation
-// behind "when does my chart favor something in this area" — fully
-// deterministic real astronomy, the same underlying math used everywhere
-// else in this app, just scanned across days instead of one snapshot.
+// behind "what does my chart support on this day" — fully deterministic
+// real astronomy, the same underlying math used everywhere else in this
+// app, just scanned across days instead of one snapshot. Every window
+// carries an honest "mode" (easy/high-energy) rather than a single
+// "favorable" label, so a day with real friction is still surfaced
+// instead of silently dropped.
 export function findFavorableWindows(natalLongitudes, keyBodies, startDate = new Date(), numDays = 14) {
   const windows = [];
   for (let i = 0; i < numDays; i++) {
     const date = new Date(startDate.getTime() + i * 86400000);
     const aspects = transitAspectsOnDate(natalLongitudes, date)
-      .filter((a) => keyBodies.includes(a.natalBody) && isFavorableAspect(a))
+      .filter((a) => keyBodies.includes(a.natalBody))
+      .map((a) => ({ ...a, mode: classifyAspect(a) }))
+      .filter((a) => a.mode !== null)
       .sort((a, b) => a.orb - b.orb);
     if (aspects.length) {
       windows.push({ date, best: aspects[0], all: aspects });
@@ -333,6 +366,65 @@ export function findFavorableWindows(natalLongitudes, keyBodies, startDate = new
   }
   // Tightest orb first — the most exact, most "active" day leads.
   return windows.sort((a, b) => a.best.orb - b.best.orb);
+}
+
+// Hour-level resolution for a single day, using the Moon specifically.
+// The Moon moves roughly 13 degrees/day (~0.5 deg/hour), so it is the only
+// body that meaningfully changes aspect within a single day — this is why
+// traditional electional astrology leans on the Moon for "best time of
+// day" guidance, not because of app-specific preference. Samples the Moon's
+// real position every `stepMinutes` across the given date and reports
+// which hour ranges carry a real (easy or high-energy) Moon-to-natal
+// aspect for the given key bodies. Returns [] when nothing is active that
+// day — an honest empty result, not a padded guess.
+export function moonWindowsForDay(natalLongitudes, keyBodies, date, stepMinutes = 30) {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const samples = [];
+  for (let m = 0; m < 24 * 60; m += stepMinutes) {
+    const t = new Date(dayStart.getTime() + m * 60000);
+    const moonLon = eclipticLongitude("Moon", t);
+    let best = null;
+    for (const [natalBody, natalLon] of Object.entries(natalLongitudes)) {
+      if (!keyBodies.includes(natalBody)) continue;
+      const sep = angularSeparation(moonLon, natalLon);
+      for (const asp of ASPECTS) {
+        const orb = Math.abs(sep - asp.angle);
+        if (orb <= asp.orb) {
+          const mode = classifyAspect({ transitBody: "Moon", aspect: asp.name });
+          if (mode && (!best || orb < best.orb)) {
+            best = { natalBody, aspect: asp.name, orb: +orb.toFixed(2), mode };
+          }
+        }
+      }
+    }
+    samples.push({ time: t, best });
+  }
+
+  // Collapse consecutive samples with the same (natalBody, aspect, mode)
+  // into single time ranges, so the output is "2:00 PM - 5:30 PM", not 30
+  // separate rows.
+  const ranges = [];
+  let current = null;
+  for (const s of samples) {
+    const key = s.best ? `${s.best.natalBody}|${s.best.aspect}|${s.best.mode}` : null;
+    if (key && current && current.key === key) {
+      current.end = s.time;
+    } else {
+      if (current) ranges.push(current);
+      current = key ? { key, start: s.time, end: s.time, best: s.best } : null;
+    }
+  }
+  if (current) ranges.push(current);
+
+  return ranges.map((r) => ({
+    start: r.start,
+    end: new Date(r.end.getTime() + stepMinutes * 60000),
+    natal_body: r.best.natalBody,
+    aspect: r.best.aspect,
+    mode: r.best.mode,
+    orb: r.best.orb,
+  }));
 }
 
 function obliquityOfEcliptic(d) {

@@ -3,6 +3,7 @@ import { Mic, ListChecks, CalendarDays } from "lucide-react";
 import SubTabBar from "../components/SubTabBar.jsx";
 import ContentCoach from "../components/ContentCoach.jsx";
 import ContentEngine from "../components/ContentEngine.jsx";
+import NicheHooks from "../components/NicheHooks.jsx";
 import ContentQueue from "../components/ContentQueue.jsx";
 import PostingCalendar from "../components/PostingCalendar.jsx";
 
@@ -23,6 +24,7 @@ export default function ContentEngineTab({ profile, onSaved }) {
       {subTab === "create" && (
         <div className="flex flex-col gap-6">
           <ContentCoach profile={profile} />
+          <NicheHooks profile={profile} />
           <ContentEngine
             profile={profile}
             onSaved={async (dump, result) => {

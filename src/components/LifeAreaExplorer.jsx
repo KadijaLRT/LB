@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Briefcase, Users, Heart, Wallet, RefreshCw, Loader2, Lightbulb } from "lucide-react";
+import { Briefcase, Users, Heart, Wallet, RefreshCw, Loader2, Lightbulb, Megaphone } from "lucide-react";
 import { getInsight, saveInsight } from "../lib/db.js";
 import { localDateString } from "../lib/date.js";
 import ChatFollowUp from "./ChatFollowUp.jsx";
@@ -7,6 +7,7 @@ import FavorableWindows from "./FavorableWindows.jsx";
 
 const AREAS = [
   { key: "career", label: "Career", icon: Briefcase },
+  { key: "content", label: "Content", icon: Megaphone },
   { key: "friendships", label: "Friendships", icon: Users },
   { key: "love", label: "Love", icon: Heart },
   { key: "finance", label: "Finance", icon: Wallet },

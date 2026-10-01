@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Wallet, HandCoins, Briefcase } from "lucide-react";
+import { Plus, Wallet, HandCoins, Briefcase, Compass } from "lucide-react";
 import SubTabBar from "../components/SubTabBar.jsx";
 import FinancePulse from "../components/FinancePulse.jsx";
 import ExpenseModal from "../components/ExpenseModal.jsx";
@@ -7,10 +7,12 @@ import ImpulsePause from "../components/ImpulsePause.jsx";
 import TransactionsAccordion from "../components/TransactionsAccordion.jsx";
 import SpendingTrend from "../components/SpendingTrend.jsx";
 import JobApplicationTracker from "../components/JobApplicationTracker.jsx";
+import ConsultingBuilder from "../components/ConsultingBuilder.jsx";
 
 const SUB_TABS = [
   { key: "overview", label: "Overview", icon: Wallet },
   { key: "impulse", label: "Impulse Check", icon: HandCoins },
+  { key: "consulting", label: "Consulting", icon: Compass },
   { key: "jobs", label: "Jobs", icon: Briefcase },
 ];
 
@@ -58,6 +60,8 @@ export default function FinancialHubTab({ profile, account, weekSpend, onLogExpe
           }
         />
       )}
+
+      {subTab === "consulting" && <ConsultingBuilder profile={profile} />}
 
       {subTab === "jobs" && <JobApplicationTracker profile={profile} />}
 

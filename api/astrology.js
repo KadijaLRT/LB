@@ -17,6 +17,7 @@ const AREA_FOCUS = {
   friendships: "Focus on the 11th house, Uranus, Mercury, and the Moon. Cover how this person shows up in groups, what they need from friendships, and where they might over- or under-invest.",
   love: "Focus on the 7th and 5th houses, Venus, Mars, and the Moon. Cover attraction patterns, what they need to feel secure in a relationship, and a real (not flattering) blind spot.",
   finance: "Focus on the 2nd and 8th houses, Jupiter, and Saturn. Cover their natural relationship to money — earning style, risk tolerance, spending triggers — and one concrete, practical caution.",
+  content: "Focus on the Sun, Mercury, Venus, Uranus, and the 11th house. Cover how this chart naturally wants to communicate and be seen — tone, format, pace — and one real tension between wanting visibility and wanting privacy or precision.",
 };
 
 // Which natal bodies are most relevant per life area — used to prioritize
@@ -26,6 +27,7 @@ const AREA_KEY_BODIES = {
   friendships: ["Moon", "Mercury", "Uranus", "Venus"],
   love: ["Venus", "Mars", "Moon", "Sun"],
   finance: ["Jupiter", "Saturn", "Venus", "Moon"],
+  content: ["Sun", "Mercury", "Venus", "Uranus", "Jupiter"],
 };
 
 function buildStandardPrompt(area) {

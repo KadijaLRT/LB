@@ -6,6 +6,7 @@ const AREA_KEY_BODIES = {
   friendships: ["Moon", "Mercury", "Uranus", "Venus"],
   love: ["Venus", "Mars", "Moon", "Sun"],
   finance: ["Jupiter", "Saturn", "Venus", "Moon"],
+  content: ["Sun", "Mercury", "Venus", "Uranus", "Jupiter"],
 };
 
 // Same real-aspect grounding used by the reading itself — recomputed fresh
