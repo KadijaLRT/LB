@@ -159,7 +159,7 @@ export default function LifeAreaExplorer({ profile }) {
         Now there's just one persistent conversation per area, always
         available whether or not a daily reading exists yet. Whether your
         first message is "tell me more" or a real situation you want to
-        talk through, it's the same chat — astrology-chat.js's system
+        talk through, it's the same chat — astrology.js's chat-mode system
         prompt reacts differently to a first message (like a friend hearing
         news) vs. a continuing one, so the tone difference that used to
         come from two separate code paths now comes from one, correctly.

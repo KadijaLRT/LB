@@ -136,10 +136,10 @@ export default function ConsultingBuilder({ profile }) {
     setLoadingFunnel(true);
     setError("");
     try {
-      const res = await fetch("/api/funnel-builder", {
+      const res = await fetch("/api/consulting-rates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ niche: niche || undefined }),
+        body: JSON.stringify({ mode: "funnel", niche: niche || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);

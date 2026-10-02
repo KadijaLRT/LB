@@ -79,6 +79,127 @@ export const config = {
   api: { bodyParser: { sizeLimit: "2mb" } },
 };
 
+// Merged into this one serverless function with content-ideas.js, dispatched
+// by req.body.mode — kept as two functions below rather than one giant one
+// so each retains its own system prompt/logic untouched. This merge exists
+// solely to stay under Vercel Hobby's 12-serverless-function cap; nothing
+// about either feature's behavior changed.
+const IDEAS_SYSTEM_PROMPT = `You're helping a friend brainstorm actual post ideas — not a strategist pitching content angles. You know what genuinely makes people stop scrolling: relatable pain points, specific "before/after" or "here's what nobody tells you" framings, real opinions (not manufactured controversy), listicles with a twist, and personal-stakes storytelling.
+
+Voice for the hooks — this matters most: write them the way this person would actually say them out loud, not like generic content-creator copy. No "Let's talk about," no "Here's the thing," no stacked exclamation points, no hollow hype. A hook should sound like a real, specific thought someone had, not a marketing template with the topic swapped in. If a voice sample (their own actual past posts) is given, match its real rhythm and word choice closely — weight that heavily.
+
+Rules:
+- Generate exactly 5 ideas.
+- Each idea must be a SPECIFIC angle, not a topic. Bad: "talk about productivity." Good: "The productivity advice that actually made things worse for me, and what I do instead."
+- Each idea needs a ready-to-use hook line (the literal first sentence someone would say/write) — not a description of a hook, the actual hook text.
+- Vary the format across the 5: mix at least one listicle-style, one personal story/confession, one contrarian/hot-take, one "here's exactly how" tutorial-style, and one relatable-pain-point.
+- If a real, self-reported personality profile is given (MBTI, Enneagram, DISC, Human Design, etc.), let it genuinely bias WHICH formats/angles feel most natural for this specific person — e.g. someone who's an Enneagram 4 or similarly identity/individuality-oriented type might naturally lean toward confession and hot-take formats over tutorials; a more structure-oriented type (DISC "C," MBTI "J" types) might naturally produce sharper tutorial/listicle angles. This should shape the MIX of the 5 ideas, never become a topic itself — nobody wants to read "5 things about being an Enneagram 4." The personality data should be invisible in the output, only felt in which angles got picked.
+- best_platform: pick the ONE platform (TikTok, Instagram, X, or Facebook) this specific angle would perform best on, and say why in one short phrase.
+- HARD CAP on goals: if their goals are given as context, AT MOST 1 of the 5 ideas may draw on them. The other 4 must come from general life — opinions, observations, relatable everyday experiences, things happening in the world, hot takes, whatever's actually interesting — with zero connection to their stated goals. Goals should feel like background biography you glanced at once, not the lens every idea gets filtered through. A person's content is not just their goal list.
+- Never explain what you did. Output ONLY the JSON below, no markdown fences.
+
+Return strict JSON:
+{
+  "ideas": [
+    { "hook": "the literal first line", "angle": "one sentence describing the full idea", "format": "listicle | confession | hot-take | tutorial | pain-point", "best_platform": "TikTok | Instagram | X | Facebook", "why": "one short phrase on why this platform" }
+  ]
+}`;
+
+// Niche faceless-video-concept generator, merged in from niche-hooks.js —
+// same reasoning as the ideas merge above (Vercel Hobby's 12-function cap).
+// Real, concrete faceless video concepts for a specific niche — no camera,
+// no identity reveal required. This is a format/mechanics generator, not a
+// chart reading: nothing here claims astrological grounding. Niche defaults
+// to organizational psychology / workplace structure / burnout, since
+// that's this user's stated field, but accepts any niche string so it's
+// reusable if that ever changes.
+const HOOKS_SYSTEM_PROMPT = `You generate faceless short-form video concepts for someone who wants to build an audience and authority in a specific professional niche WITHOUT showing their face or revealing personal identifying details.
+
+Voice: direct, confident, no hype, no manufactured urgency. Write the way a real person in this field would actually talk, not generic "content creator" copy. No "Let's dive in," no stacked exclamation points, no "You won't believe."
+
+Hard rules:
+- Every concept must be genuinely executable with zero camera time: text-on-screen over B-roll, a green-screen slide/document breakdown, or a voiceover over static/stock visuals. Each concept must specify which of these three visual approaches it uses.
+- The hook must be a real, specific line — not a description of a hook ("a hook about burnout") but the literal words that would appear on screen or be spoken first.
+- Ground every concept in the stated niche/expertise. Do not invent specific statistics, studies, or client stories — if a claim needs a number or a named study, phrase it as a general, defensible professional observation instead ("teams under chronic overload see slower execution," not "40% of teams fail").
+- Do not invent personal anecdotes, incidents, or client details that weren't provided. If the person's own background/experience notes are given, you may draw on those; otherwise keep it general and professional, not a fake story.
+- Never claim or imply a specific growth outcome, follower count, or income result from following this format.
+- Generate exactly 4 concepts, each using a different one of these visual approaches where possible: (1) B-roll + text overlay, (2) green-screen slide/document breakdown, (3) voiceover over static or screen-recording, (4) your choice of the strongest remaining approach for this niche.
+- Never explain what you did. Output ONLY the JSON below, no markdown fences.
+
+Return strict JSON:
+{
+  "concepts": [
+    {
+      "title": "short name for the concept",
+      "visual_approach": "one of: b-roll-text-overlay | green-screen-breakdown | voiceover-static | screen-recording",
+      "visual_direction": "one concrete sentence on what's actually on screen",
+      "hook": "the literal first line, spoken or on-screen",
+      "script_or_overlay": "the rest of the content, 60-130 words, in the person's field, no invented stats/anecdotes",
+      "why_it_fits": "one sentence on why this format suits a faceless/private creator"
+    }
+  ]
+}`;
+
+async function handleNicheHooks(req, res) {
+  try {
+    const { profile, niche, focusTopic } = req.body || {};
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ error: "GROQ_API_KEY is not configured on the server" });
+    }
+
+    const resolvedNiche = (niche && String(niche).trim()) || "organizational psychology, workplace structure, and burnout recovery";
+
+    const contextLines = [
+      `Niche/field: ${resolvedNiche}`,
+      focusTopic && `Specific focus for this batch: ${focusTopic}`,
+      profile?.content_voice_sample && `Their own actual past posts (match this rhythm/voice closely):\n${profile.content_voice_sample}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    let completion;
+    try {
+      completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: HOOKS_SYSTEM_PROMPT },
+          { role: "user", content: contextLines },
+        ],
+        temperature: 0.8,
+        max_tokens: 1800,
+        response_format: { type: "json_object" },
+      });
+    } catch (err) {
+      const detail = err?.error?.message || err?.message || "Unknown Groq error";
+      console.error("Groq niche-hooks call failed:", detail);
+      return res.status(502).json({ error: `Hook generator call failed: ${detail}` });
+    }
+
+    const raw = completion.choices?.[0]?.message?.content?.trim() || "";
+    let parsed;
+    try {
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      parsed = JSON.parse(raw.slice(start, end + 1));
+    } catch {
+      console.error("Niche-hooks response was not parseable JSON:", raw.slice(0, 500));
+      return res.status(502).json({ error: "Hook generator returned unparseable output. Try again." });
+    }
+
+    if (!Array.isArray(parsed.concepts)) {
+      return res.status(502).json({ error: "Hook generator returned an unexpected shape. Try again." });
+    }
+
+    return res.status(200).json(parsed);
+  } catch (err) {
+    const detail = err?.error?.message || err?.message || "Unknown server error";
+    console.error("Niche-hooks endpoint crashed:", err);
+    return res.status(500).json({ error: `Hook generator failed: ${detail}` });
+  }
+}
+
 function extractJson(raw) {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = fenced ? fenced[1] : raw;
@@ -92,13 +213,71 @@ function extractJson(raw) {
   }
 }
 
-export default async function handler(req, res) {
+async function handleIdeas(req, res) {
   try {
-    if (req.method !== "POST") {
-      res.setHeader("Allow", "POST");
-      return res.status(405).json({ error: "Method not allowed" });
+    const { profile, seedTopic } = req.body || {};
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ error: "GROQ_API_KEY is not configured on the server" });
     }
 
+    const contextLines = [
+      profile?.name && `Name: ${profile.name}`,
+      profile?.content_voice_sample &&
+        `Their own actual past posts (match this rhythm/voice closely):\n${profile.content_voice_sample}`,
+      profile?.personality_profile &&
+        `Their real, self-reported personality profile — let it bias which formats/angles feel natural per the rules above, never a topic itself: ${profile.personality_profile}`,
+      profile?.core_goals && `Their goals, background only — remember the hard cap, at most 1 of 5 ideas: ${profile.core_goals}`,
+      seedTopic && `They specifically want ideas related to: ${seedTopic}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    let completion;
+    try {
+      completion = await groq.chat.completions.create({
+        model: "openai/gpt-oss-120b",
+        reasoning_effort: "low",
+        messages: [
+          { role: "system", content: IDEAS_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: contextLines || "No specific context given — generate broadly appealing, format-diverse ideas.",
+          },
+        ],
+        temperature: 0.9,
+        max_tokens: 1200,
+        response_format: { type: "json_object" },
+      });
+    } catch (err) {
+      const detail = err?.error?.message || err?.message || "Unknown Groq error";
+      console.error("Groq idea generation failed:", detail);
+      return res.status(502).json({ error: `Idea generation failed: ${detail}` });
+    }
+
+    const raw = completion.choices?.[0]?.message?.content?.trim() || "";
+    const parsed = extractJson(raw);
+    if (!parsed?.ideas?.length) {
+      const finishReason = completion.choices?.[0]?.finish_reason;
+      console.error(`No ideas parsed from Groq response (finish_reason: ${finishReason}):`, raw.slice(0, 500));
+      return res.status(502).json({
+        error:
+          finishReason === "length"
+            ? "Idea generation was cut off before finishing (hit length limit). Try again."
+            : "Couldn't generate ideas. Try again.",
+      });
+    }
+
+    return res.status(200).json(parsed);
+  } catch (err) {
+    const detail = err?.error?.message || err?.message || "Unknown server error";
+    console.error("Content ideas endpoint crashed:", err);
+    return res.status(500).json({ error: `Idea generation failed: ${detail}` });
+  }
+}
+
+async function handleScript(req, res) {
+  try {
     const { brainDump, profile } = req.body || {};
     if (!brainDump || typeof brainDump !== "string") {
       return res.status(400).json({ error: "Missing 'brainDump' string in request body" });
@@ -187,4 +366,23 @@ export default async function handler(req, res) {
     console.error("Content endpoint crashed:", err);
     return res.status(500).json({ error: `Content engine failed: ${detail}` });
   }
+}
+
+// Single serverless function, dispatched by req.body.mode: "ideas" runs the
+// old content-ideas.js logic, anything else (including no mode, for
+// backward compatibility with existing frontend calls) runs the brain-dump
+// script engine. Merged purely to stay under Vercel Hobby's 12-function
+// cap — see note above IDEAS_SYSTEM_PROMPT.
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  if (req.body?.mode === "ideas") {
+    return handleIdeas(req, res);
+  }
+  if (req.body?.mode === "niche-hooks") {
+    return handleNicheHooks(req, res);
+  }
+  return handleScript(req, res);
 }

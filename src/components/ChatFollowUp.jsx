@@ -43,10 +43,10 @@ export default function ChatFollowUp({ area, profile, priorReading, contextKey }
     }
 
     try {
-      const res = await fetch("/api/astrology-chat", {
+      const res = await fetch("/api/astrology", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ area, profile, priorReading, messages: nextMessages }),
+        body: JSON.stringify({ mode: "chat", area, profile, priorReading, messages: nextMessages }),
       });
       const raw = await res.text();
       let data;

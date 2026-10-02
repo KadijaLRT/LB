@@ -19,10 +19,10 @@ export default function NicheHooks({ profile }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/niche-hooks", {
+      const res = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, focusTopic: focusTopic.trim() || undefined }),
+        body: JSON.stringify({ mode: "niche-hooks", profile, focusTopic: focusTopic.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);

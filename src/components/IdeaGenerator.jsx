@@ -20,10 +20,10 @@ export default function IdeaGenerator({ profile, onUseIdea }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/content-ideas", {
+      const res = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, seedTopic: seedTopic.trim() || undefined }),
+        body: JSON.stringify({ mode: "ideas", profile, seedTopic: seedTopic.trim() || undefined }),
       });
       const raw = await res.text();
       let data;
