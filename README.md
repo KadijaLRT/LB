@@ -2140,4 +2140,5 @@ AI engine stays on **Groq** (`openai/gpt-oss-120b`), not Gemini, per your last r
   even when a provider key is set — only the raw payload differs)
 - Multiple linked bank accounts (schema/UI currently assume one `financial_accounts` row)
 #   l b  
+ #   l b  
  
