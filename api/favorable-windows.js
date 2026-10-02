@@ -37,6 +37,39 @@ const HARD_VERB = {
   conjunction: "is intensifying",
 };
 
+// Concrete, real-world action examples per area — what an "easy" day
+// actually looks like to DO something about, not just a mood description.
+// Picked to be ordinary, low-stakes, recognizable actions (send the email,
+// post the video, have the conversation) rather than vague astrology
+// language, so the guidance reads like advice from a person, not a
+// horoscope. One example per mode per area, kept short and literal.
+const REAL_WORLD_EXAMPLES = {
+  career: {
+    easy: "like sending that pitch, asking for the raise, or submitting the application you've been sitting on",
+    "high-energy": "like pushing through a hard conversation with a boss or client, or grinding through a deadline — doable, just not effortless",
+  },
+  content: {
+    easy: "like filming or posting the video you've been putting off, or sending that first cold outreach message",
+    "high-energy": "like publishing something opinionated or a hot take — it'll land, but expect more pushback or debate than usual",
+  },
+  friendships: {
+    easy: "like reaching out to reconnect, making plans, or having an easy, warm conversation",
+    "high-energy": "like addressing tension with a friend directly — the conversation will be real, not smooth",
+  },
+  love: {
+    easy: "like having an open conversation, planning a date, or being vulnerable with a partner",
+    "high-energy": "like bringing up something you've been avoiding — it'll clear the air, but expect some friction first",
+  },
+  finance: {
+    easy: "like negotiating a bill, asking for a better rate, or making a planned purchase",
+    "high-energy": "like having a hard budget conversation or pushing through a financial decision you've been putting off",
+  },
+};
+
+function realWorldExample(mode, area) {
+  return REAL_WORLD_EXAMPLES[area]?.[mode] || (mode === "easy" ? "like taking action on something that's been easy to put off" : "like pushing through something that needs real effort today");
+}
+
 // Never claims an outcome. "Easy" windows describe where the day supports
 // smooth, low-resistance effort. "High-energy" windows describe real
 // friction or intensity — not a bad day, a day where force meets
@@ -49,11 +82,15 @@ function describeAspect(transitBody, aspect, natalBody, mode) {
   return `${transitBody} (${transitMeaning}) ${verb} your natal ${natalBody} (${natalMeaning}).`;
 }
 
+// Plain-language summary leads with what the day actually feels like to
+// act on, using a concrete real-world example first, with the astrology
+// explanation folded in afterward as the "why" rather than the headline.
 function supportLine(mode, area) {
+  const example = realWorldExample(mode, area);
   if (mode === "easy") {
-    return `Supports: ${area} efforts that want ease, flow, or things to go smoothly — a good day to act, not just plan.`;
+    return `In plain terms: today's a good day to act, not just plan — ${example}. Things should go more smoothly than usual.`;
   }
-  return `Doesn't favor ease: real friction is present. This isn't a bad day, it's a day where ${area} work will meet resistance — better for pushing through something that requires force than for things you want to go smoothly.`;
+  return `In plain terms: today's got real friction in it — ${example}. It's not a bad day, just one where things take more push than usual.`;
 }
 
 function fmtTime(d) {
@@ -93,14 +130,18 @@ export default async function handler(req, res) {
         transit_body: w.best.transitBody,
         aspect: w.best.aspect,
         natal_body: w.best.natalBody,
-        description: describeAspect(w.best.transitBody, w.best.aspect, w.best.natalBody, w.best.mode),
+        // guidance is the plain-language, real-world-example line — shown
+        // first/by default. description is the underlying astrology
+        // detail — shown only if the person taps to see "why."
         guidance: supportLine(w.best.mode, area),
+        description: describeAspect(w.best.transitBody, w.best.aspect, w.best.natalBody, w.best.mode),
         // Hour-level resolution from the Moon's real motion that day — only
         // included when the math actually found something; never padded.
         hourly: dayWindows.map((hw) => ({
           start: fmtTime(hw.start),
           end: fmtTime(hw.end),
           mode: hw.mode,
+          guidance: realWorldExample(hw.mode, area),
           description: describeAspect("Moon", hw.aspect, hw.natal_body, hw.mode),
         })),
       };

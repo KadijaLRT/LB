@@ -50,11 +50,12 @@ Guardrails:
 - Length: as long as it needs to be to say the one true thing well — no padding, but don't artificially cut it short either.
 - If there's genuinely nothing interesting in the data, say that plainly rather than manufacturing something.
 
-Hard rules for the "action_ideas" field (the "what do I actually do" part):
+Hard rules for the "action_ideas" field (the "what do I actually do" part) — this is the plain-language, real-world-example layer that sits under the astrology-voice reading above, so it has to carry zero jargon and be a literal thing someone could do today:
 - Exactly 2-3 items. Each one concrete and specific, tied to the actual thing you just said — not generic advice.
-- Doable in the next few days. "Send that email you've been sitting on" beats "embrace communication."
+- Each idea must name a specific, ordinary, recognizable real-world action — the kind of thing that could be a to-do list item. "Send that email you've been sitting on," "text them back instead of overthinking it," "set a 10-minute timer and start the application." Not a mood, not a theme, an actual action.
+- Doable in the next few days.
 - Vary the ideas across the aspects covered where possible — don't give 3 variations on the same one action.
-- Each idea: one sentence, under 20 words, plain everyday language, no astrology jargon. No hedging, no "maybe consider" — direct and doable, understandable at a glance.
+- Each idea: one sentence, under 20 words, plain everyday language, zero astrology jargon (no planet names, signs, houses, "energy," or "alignment"). No hedging, no "maybe consider" — direct and doable, understandable at a glance by someone who skipped the reading entirely.
 - Never vague encouragement like "stay positive" or "trust the process" — these must be things a person could literally check off.
 
 Output ONLY this JSON shape, no markdown fences, no extra text:
@@ -87,9 +88,10 @@ Hard rules for the "reading" field:
 - STRICT LIMIT: 130 words. Short and natural beats comprehensive — this is a text back, not an essay.
 - Do NOT end with an action line in the prose — that goes in action_ideas.
 
-Hard rules for the "action_ideas" field (this is the "what do I actually do" part):
+Hard rules for the "action_ideas" field (this is the "what do I actually do" part) — zero jargon here, this is the plain-language layer:
 - Exactly 2-3 items, specific to THEIR situation (not generic astrology advice) — genuinely different, doable in the next few days.
-- Each idea: one sentence, under 20 words, plain everyday language, no hedging, no jargon.
+- Each idea must be a specific, ordinary, real-world action someone could put on a to-do list — not a mood or a theme.
+- Each idea: one sentence, under 20 words, plain everyday language, no hedging, no jargon, no planet or sign names.
 
 Output ONLY this JSON shape, no markdown fences, no extra text:
 {

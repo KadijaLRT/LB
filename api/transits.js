@@ -16,24 +16,24 @@ import { currentPlacements, ELEMENT_BY_SIGN, parseNatalLongitudes, currentTransi
 
 const MOOD_BY_ELEMENT = {
   fire: [
-    "energy runs hot today — good for pitching, starting, moving fast. Watch impulsive spending or overcommitting.",
-    "restless, quick-to-act energy. Great for kicking something off, less great for anything that needs patience.",
-    "a spark-something-new kind of day. Good momentum for bold moves, easy to overcommit if you're not careful.",
+    "energy runs hot today — a good day to send that pitch or make the call you've been putting off. Watch impulse purchases.",
+    "restless, quick-to-act energy. Good day to kick something off; a bad day to start anything that needs patience, like a long form or application.",
+    "good momentum for a bold move, like posting something you've been sitting on. Easy to overcommit if you're not careful, so don't say yes to everything today.",
   ],
   earth: [
-    "grounded, practical mood — good for finances, admin, and finishing what's half-done. Low-drama, high-output day.",
-    "steady energy, not flashy. Good for routine tasks and follow-through rather than big new starts.",
-    "a build-something-real day. Good for money matters and anything that needs consistency, not sparks.",
+    "grounded, practical mood — a good day to finally pay that bill, do the admin task you've been avoiding, or finish something half-done.",
+    "steady, low-drama energy. Good for routine tasks and follow-through — not the day to launch something brand new, more a day to maintain what's already moving.",
+    "a build-something-real day — good for a money conversation or anything that needs consistency over a spark of inspiration.",
   ],
   air: [
-    "heady, talkative energy — good for scripts, threads, conversations. Ideas move faster than follow-through, write things down.",
-    "a lot of mental motion today. Good for brainstorming and connecting with people, harder to sit still and finish.",
-    "quick-thinking, social mood. Good day for conversations that matter, watch for scattered focus.",
+    "heady, talkative energy — good day to write that script, send that message, or have the conversation you've been rehearsing in your head. Write ideas down, they'll move faster than you can act on them.",
+    "a lot of mental motion today. Good for brainstorming or reaching out to someone, harder to sit still and actually finish a task.",
+    "quick-thinking, social mood — good day for a conversation that matters. Watch for getting scattered across too many tabs at once.",
   ],
   water: [
-    "feelings run close to the surface — good for reflection and rest. Push big decisions a day if you can.",
-    "an intuitive, sensitive mood. Good for checking in with people you care about, not a great day to force logic.",
-    "a slower, feeling-forward day. Good for rest and honesty with yourself, less good for high-pressure decisions.",
+    "feelings run close to the surface — good day for rest or checking in with someone you care about. Push a big decision to tomorrow if you can.",
+    "an intuitive, sensitive mood. Good for reaching out to someone you've been thinking about, not a great day to force a logical decision under pressure.",
+    "a slower, feeling-forward day — good for rest and being honest with yourself, less good for a high-pressure call or negotiation.",
   ],
 };
 
@@ -80,7 +80,7 @@ Hard rules:
 - Plain everyday language, no astrology jargon left unexplained — no bare "orb," "transiting," "natal," "applying," "separating."
 - Vary your sentence structure and word choice naturally — don't default to the same "X is [verb]-ing your Y" shape every time, write it the way a person actually would.
 - Warm, direct, a little personality — not clinical, not fortune-teller vague.
-- Include the practical "so what" — what this is actually good or bad for today, in a few words, not a separate paragraph.
+- Lead with or include a concrete, ordinary real-world example of what this is good or bad for today — a specific recognizable action (send that email, have the hard conversation, don't start the big project today), not an abstract mood word. "Good for admin" is weaker than "good day to finally deal with that overdue bill." Someone should be able to read the line and know exactly one thing they could go do, not just how the day feels.
 
 Output ONLY the line itself. No quotes, no preamble, no explanation.`;
 
