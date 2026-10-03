@@ -97,6 +97,19 @@ function fmtTime(d) {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+// Local-date formatting (YYYY-MM-DD), deliberately NOT toISOString().slice(0,10)
+// — toISOString() converts to UTC first, which can shift the displayed date
+// by a day depending on the server's timezone and what time of day the
+// request runs. w.date from findFavorableWindows is already anchored to
+// local midnight, so reading its local y/m/d parts directly keeps the date
+// the scan actually means, not a UTC-shifted neighbor of it.
+function fmtDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") {
@@ -124,7 +137,7 @@ export default async function handler(req, res) {
     const dayResults = windows.slice(0, 10).map((w) => {
       const dayWindows = moonWindowsForDay(natalLongitudes, keyBodies, w.date, 30);
       return {
-        date: w.date.toISOString().slice(0, 10),
+        date: fmtDate(w.date),
         mode: w.best.mode,
         orb: w.best.orb,
         transit_body: w.best.transitBody,

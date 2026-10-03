@@ -351,21 +351,61 @@ function classifyAspect(a) {
 // carries an honest "mode" (easy/high-energy) rather than a single
 // "favorable" label, so a day with real friction is still surfaced
 // instead of silently dropped.
+//
+// keyBodies is treated as a PRIORITY-ORDERED list (first = most central to
+// this area), not just a membership filter. Several life areas legitimately
+// share natal bodies (e.g. career and content both track Sun, Mercury,
+// Venus, Jupiter), so on a day where one aspect is extremely exact (e.g.
+// orb 0.01), picking "the single tightest aspect anywhere in the list"
+// made every overlapping area report the identical top window — technically
+// correct but not useful, since it never surfaced anything area-specific.
+// Instead, each candidate aspect's score blends its real exactness (orb)
+// with how central its natal body is to THIS area (its position in
+// keyBodies), so areas sharing bodies can still legitimately agree when one
+// placement truly dominates everything, but more often surface their own
+// most-relevant angle — e.g. career favors a tight Saturn/Mars/Sun hit even
+// when a slightly tighter Venus-Jupiter aspect exists, because Venus/Jupiter
+// are less central to career specifically.
+function scoreForArea(aspect, keyBodies) {
+  const rank = keyBodies.indexOf(aspect.natalBody);
+  // rank 0 (most central) contributes 0 penalty; each step down the
+  // priority list adds a flat penalty bigger than any realistic orb
+  // difference, so centrality dominates over tiny orb differences, while an
+  // overwhelmingly tighter aspect (near-exact, orb close to 0) on a
+  // less-central body can still win if it's genuinely that dominant.
+  const centralityPenalty = rank === -1 ? 999 : rank * 0.5;
+  return aspect.orb + centralityPenalty;
+}
+
 export function findFavorableWindows(natalLongitudes, keyBodies, startDate = new Date(), numDays = 14) {
   const windows = [];
+  // Anchor to local midnight of startDate, not the exact current moment —
+  // otherwise "day i" drifts by whatever time-of-day the scan started at
+  // (e.g. a scan kicked off at 11pm would have "today" already mostly
+  // elapsed), and converting that non-midnight timestamp to a date string
+  // later via toISOString() (UTC) can additionally shift the displayed
+  // date by a day depending on the server's timezone — this was the actual
+  // cause of dates looking "off." Normalizing here means every scanned day
+  // is a clean local midnight, and the date string built from it downstream
+  // should use local getFullYear/getMonth/getDate, never toISOString.
+  const anchor = new Date(startDate);
+  anchor.setHours(0, 0, 0, 0);
   for (let i = 0; i < numDays; i++) {
-    const date = new Date(startDate.getTime() + i * 86400000);
+    const date = new Date(anchor.getTime() + i * 86400000);
     const aspects = transitAspectsOnDate(natalLongitudes, date)
       .filter((a) => keyBodies.includes(a.natalBody))
       .map((a) => ({ ...a, mode: classifyAspect(a) }))
       .filter((a) => a.mode !== null)
-      .sort((a, b) => a.orb - b.orb);
+      .sort((a, b) => scoreForArea(a, keyBodies) - scoreForArea(b, keyBodies));
     if (aspects.length) {
       windows.push({ date, best: aspects[0], all: aspects });
     }
   }
-  // Tightest orb first — the most exact, most "active" day leads.
-  return windows.sort((a, b) => a.best.orb - b.best.orb);
+  // Chronological order for display — a day-card list that jumps around
+  // (Mon, then Tue, then last Sun) is confusing no matter how "relevant"
+  // each day scored. scoreForArea still decided which aspect is "best" for
+  // each day above; it's never used as the final list-order key.
+  return windows.sort((a, b) => a.date - b.date);
 }
 
 // Hour-level resolution for a single day, using the Moon specifically.
@@ -401,30 +441,51 @@ export function moonWindowsForDay(natalLongitudes, keyBodies, date, stepMinutes 
     samples.push({ time: t, best });
   }
 
-  // Collapse consecutive samples with the same (natalBody, aspect, mode)
-  // into single time ranges, so the output is "2:00 PM - 5:30 PM", not 30
-  // separate rows.
-  const ranges = [];
-  let current = null;
+  // The 4-6° orb thresholds in ASPECTS are correct for "is this aspect
+  // active at all," but the Moon only moves ~0.5deg/hour, so a full 6° orb
+  // can stay "in range" for up to ~12 hours — mathematically real, but
+  // useless as a "best window" (nobody wants "7am-8:30pm, good luck").
+  // A "best window" should mean genuinely close, not merely in-orb, so
+  // tighten to a practical same-day window: only the portion of each range
+  // where the orb is within a much narrower practical threshold (1.5deg,
+  // ~3 hours of Moon motion each side of exact), which is what actually
+  // reads as "now is a good time" rather than "sometime today."
+  const TIGHT_ORB = 1.5;
+
+  // Recompute tight sub-ranges directly from the original samples rather
+  // than the already-collapsed (wide) ranges, so we capture the real
+  // narrow span around exactness instead of the whole in-orb period.
+  const tight = [];
+  let cur = null;
   for (const s of samples) {
-    const key = s.best ? `${s.best.natalBody}|${s.best.aspect}|${s.best.mode}` : null;
-    if (key && current && current.key === key) {
-      current.end = s.time;
+    const isTight = s.best && s.best.orb <= TIGHT_ORB;
+    const key = isTight ? `${s.best.natalBody}|${s.best.aspect}|${s.best.mode}` : null;
+    if (key && cur && cur.key === key) {
+      cur.end = s.time;
+      if (s.best.orb < cur.best.orb) cur.best = s.best;
     } else {
-      if (current) ranges.push(current);
-      current = key ? { key, start: s.time, end: s.time, best: s.best } : null;
+      if (cur) tight.push(cur);
+      cur = key ? { key, start: s.time, end: s.time, best: s.best } : null;
     }
   }
-  if (current) ranges.push(current);
+  if (cur) tight.push(cur);
 
-  return ranges.map((r) => ({
-    start: r.start,
-    end: new Date(r.end.getTime() + stepMinutes * 60000),
-    natal_body: r.best.natalBody,
-    aspect: r.best.aspect,
-    mode: r.best.mode,
-    orb: r.best.orb,
-  }));
+  if (tight.length === 0) return [];
+
+  // Only the single tightest window for the day — "best window" should be
+  // one clear answer, not a list of every moment that technically counts.
+  tight.sort((a, b) => a.best.orb - b.best.orb);
+  const r = tight[0];
+  return [
+    {
+      start: r.start,
+      end: new Date(r.end.getTime() + stepMinutes * 60000),
+      natal_body: r.best.natalBody,
+      aspect: r.best.aspect,
+      mode: r.best.mode,
+      orb: r.best.orb,
+    },
+  ];
 }
 
 function obliquityOfEcliptic(d) {

@@ -1,63 +1,56 @@
 import { useEffect, useState } from "react";
 import { TrendingUp, TrendingDown, Info, Clock, ChevronDown } from "lucide-react";
 
+// Collapsed by default to a single line: date badge + guidance. Everything
+// else (the best hourly window, the astrology detail) lives behind one
+// "Why?" toggle so the whole 2-week list reads as a compact stack of
+// one-liners instead of a stack of multi-paragraph cards.
 function DayCard({ w }) {
-  const [showWhy, setShowWhy] = useState(false);
+  const [open, setOpen] = useState(false);
   const isEasy = w.mode === "easy";
+  const hourly = w.hourly?.[0]; // moonWindowsForDay now returns at most one, the tightest
 
   return (
-    <div className="flex flex-col gap-2 pb-3 border-b border-line last:border-0 last:pb-0">
+    <button
+      type="button"
+      onClick={() => setOpen((s) => !s)}
+      className="flex flex-col gap-1 py-1.5 border-b border-line last:border-0 last:pb-0 text-left w-full"
+    >
       <div className="flex items-center gap-2">
         {isEasy ? (
-          <TrendingUp size={13} className="text-sage shrink-0" />
+          <TrendingUp size={12} className="text-sage shrink-0" />
         ) : (
-          <TrendingDown size={13} className="text-fire shrink-0" />
+          <TrendingDown size={12} className="text-fire shrink-0" />
         )}
-        <span className="text-sm text-cream">
+        <span className="text-xs text-cream w-[64px] shrink-0">
           {new Date(w.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
         </span>
-        <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full ${isEasy ? "bg-sage/15 text-sage" : "bg-fire/15 text-fire"}`}>
-          {isEasy ? "Easy day" : "Push-through day"}
-        </span>
+        <p className="text-xs text-cream/80 leading-snug truncate flex-1">{w.guidance}</p>
+        <ChevronDown size={11} className={`shrink-0 text-muted/50 transition-transform ${open ? "rotate-180" : ""}`} />
       </div>
 
-      {/* Plain-language line leads — this is what most people actually want
-          to read. The astrology detail is one tap away, not the default. */}
-      <p className="text-sm text-cream/90 leading-relaxed">{w.guidance}</p>
-
-      {w.hourly?.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {w.hourly.map((h, j) => (
-            <div key={j} className="flex items-start gap-1.5 text-xs text-muted">
+      {open && (
+        <div className="flex flex-col gap-1.5 pl-5 pt-1">
+          <p className="text-xs text-cream/90 leading-relaxed">{w.guidance}</p>
+          {hourly && (
+            <div className="flex items-start gap-1.5 text-xs text-muted">
               <Clock size={11} className="shrink-0 mt-0.5" />
               <span>
-                <span className="text-cream">{h.start}–{h.end}</span>: best window today, {h.guidance}
+                <span className="text-cream">{hourly.start}–{hourly.end}</span>: best window today
               </span>
             </div>
-          ))}
+          )}
+          <div className="flex flex-col gap-1 pl-1 border-l-2 border-line/60">
+            <span className="text-[11px] text-muted leading-relaxed pl-2">{w.description}</span>
+            {hourly && (
+              <span className="text-[11px] text-muted/80 leading-relaxed pl-2">
+                {hourly.start}–{hourly.end}: {hourly.description}
+              </span>
+            )}
+          </div>
         </div>
       )}
-
-      <button
-        type="button"
-        onClick={() => setShowWhy((s) => !s)}
-        className="flex items-center gap-1 text-[11px] text-muted/70 hover:text-muted self-start"
-      >
-        <ChevronDown size={11} className={`transition-transform ${showWhy ? "rotate-180" : ""}`} />
-        {showWhy ? "Hide the astrology" : "Why? (see the chart detail)"}
-      </button>
-
-      {showWhy && (
-        <div className="flex flex-col gap-1 pl-1 border-l-2 border-line/60">
-          <span className="text-xs text-muted leading-relaxed pl-2">{w.description}</span>
-          {w.hourly?.map((h, j) => (
-            <span key={j} className="text-xs text-muted/80 leading-relaxed pl-2">
-              {h.start}–{h.end}: {h.description}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
+    </button>
   );
 }
 
@@ -98,24 +91,23 @@ export default function FavorableWindows({ profile, area }) {
   if (!windows) return null;
 
   return (
-    <div className="border border-line rounded-2xl p-4 flex flex-col gap-3">
-      <span className="text-xs uppercase tracking-[0.2em] text-clay flex items-center gap-1.5">
-        <TrendingUp size={12} />
-        Good days to act — next 2 weeks
-      </span>
-
-      <div className="flex items-start gap-2 text-xs text-muted italic">
-        <Info size={13} className="shrink-0 mt-0.5" />
-        Think of it like a weather forecast for your energy, not a crystal ball: "easy" days mean things tend to go
-        more smoothly, "push-through" days mean more friction, not bad luck. Nothing here guarantees an outcome.
+    <div className="border border-line rounded-2xl p-3 flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs uppercase tracking-[0.2em] text-clay flex items-center gap-1.5">
+          <TrendingUp size={12} />
+          Good days to act
+        </span>
+        <span className="flex items-center gap-1 text-[11px] text-muted/60" title="Weather for your energy, not a guarantee.">
+          <Info size={11} />
+        </span>
       </div>
 
       {windows.length === 0 && (
-        <p className="text-sm text-muted italic">Nothing especially tight in the next two weeks for this area, an ordinary stretch, not a bad one.</p>
+        <p className="text-xs text-muted italic py-1">Nothing especially tight in the next two weeks, an ordinary stretch.</p>
       )}
 
       {windows.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col">
           {windows.map((w, i) => (
             <DayCard key={i} w={w} />
           ))}
