@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Sparkles, Target, Compass, Settings as SettingsIcon, ChevronDown } from "lucide-react";
 import SubTabBar from "../components/SubTabBar.jsx";
-import AstroSnapshot from "../components/AstroSnapshot.jsx";
 import FullChartReading from "../components/FullChartReading.jsx";
 import SettingsPage from "../components/SettingsPage.jsx";
 import LifeAreaExplorer from "../components/LifeAreaExplorer.jsx";
@@ -24,12 +23,6 @@ export default function BlueprintTab({ profile, onSave }) {
 
       {subTab === "chart" && (
         <div className="flex flex-col gap-6">
-          <AstroSnapshot
-            sun={profile?.sun_sign}
-            moon={profile?.moon_sign}
-            rising={profile?.rising_sign}
-            natalChartNotes={profile?.natal_chart_notes}
-          />
           <FullChartReading profile={profile} />
         </div>
       )}

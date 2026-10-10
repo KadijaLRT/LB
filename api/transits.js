@@ -84,17 +84,38 @@ Hard rules:
 
 Output ONLY the line itself. No quotes, no preamble, no explanation.`;
 
-async function generatePersonalVibe(natalLongitudes, placements, now) {
-  const aspects = currentTransitAspects(natalLongitudes, now, 3);
-  if (!aspects.length) {
-    return "Nothing from today's sky is lining up tightly with your chart right now — a quieter day, astrologically.";
-  }
+// Why the vibe said the same thing for a week: it grounded the line in the
+// single tightest aspect across ALL ten bodies. Slow planets (Jupiter through
+// Pluto) hold the same aspect to a natal point for weeks, so they won the
+// "tightest" slot every day and the input fact never changed. A DAILY vibe
+// must be grounded in fast movers only (Moon changes aspect every few hours,
+// Sun/Mercury/Venus/Mars every few days), plus the Moon's current sign.
+const FAST_BODIES = ["Moon", "Sun", "Mercury", "Venus", "Mars"];
 
-  const tightest = aspects[0];
-  const isBuilding = tightest.trend.startsWith("applying");
-  const factLine = `Today, transiting ${tightest.transitBody} is making a real ${tightest.aspect} to this person's natal ${tightest.natalBody} (this is ${
-    isBuilding ? "still building/getting stronger over the next few days" : "already past its peak, easing off"
-  }).`;
+async function generatePersonalVibe(natalLongitudes, placements, now) {
+  // Short lookahead (6h): the 3-day lookahead made the Moon's applying or
+  // separating trend meaningless, since it travels ~39 degrees in 3 days.
+  const aspects = currentTransitAspects(natalLongitudes, now, 0.25).filter((a) => FAST_BODIES.includes(a.transitBody));
+
+  // Prefer a close Moon aspect (the most day-specific signal), otherwise the
+  // tightest fast-body aspect.
+  const moonAspect = aspects.find((a) => a.transitBody === "Moon" && a.orb <= 3);
+  const chosen = moonAspect || aspects[0] || null;
+
+  const moonSign = placements.Moon.sign;
+  const dateLabel = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+
+  let factLine;
+  if (chosen) {
+    const isBuilding = chosen.trend.startsWith("applying");
+    factLine = `Date: ${dateLabel}. Transiting ${chosen.transitBody} is making a real ${chosen.aspect} to this person's natal ${chosen.natalBody} (${
+      isBuilding ? "building toward exact" : "already past its peak, easing off"
+    }). The Moon is currently in ${moonSign}.`;
+  } else {
+    // No close fast-body aspect: still ground it in something that changes,
+    // the Moon's sign, rather than returning one fixed sentence every day.
+    factLine = `Date: ${dateLabel}. Nothing is tightly aligned with this person's chart right now. The Moon is currently in ${moonSign} (${ELEMENT_BY_SIGN[moonSign]} element), so the day's mood comes from that.`;
+  }
 
   if (!process.env.GROQ_API_KEY) {
     // No key configured — fail up to the caller's generic fallback rather
@@ -130,6 +151,9 @@ export default async function handler(req, res) {
       res.setHeader("Allow", "POST");
       return res.status(405).json({ error: "Method not allowed" });
     }
+
+    // Never let a CDN or browser reuse yesterday's line.
+    res.setHeader("Cache-Control", "no-store, max-age=0");
 
     const { sun, moon, rising, natal_chart_notes, for_date } = req.body || {};
     const natal = { sun: sun || undefined, moon: moon || undefined, rising: rising || undefined };
