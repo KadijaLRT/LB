@@ -12,6 +12,7 @@
 // into one sentence.
 
 import Groq from "groq-sdk";
+import { withVoice } from "./_voice.js";
 import { currentPlacements, ELEMENT_BY_SIGN, parseNatalLongitudes, currentTransitAspects } from "./_ephemeris.js";
 
 const MOOD_BY_ELEMENT = {
@@ -92,7 +93,7 @@ Output ONLY the line itself. No quotes, no preamble, no explanation.`;
 // Sun/Mercury/Venus/Mars every few days), plus the Moon's current sign.
 const FAST_BODIES = ["Moon", "Sun", "Mercury", "Venus", "Mars"];
 
-async function generatePersonalVibe(natalLongitudes, placements, now) {
+async function generatePersonalVibe(natalLongitudes, placements, now, voiceSample) {
   // Short lookahead (6h): the 3-day lookahead made the Moon's applying or
   // separating trend meaningless, since it travels ~39 degrees in 3 days.
   const aspects = currentTransitAspects(natalLongitudes, now, 0.25).filter((a) => FAST_BODIES.includes(a.transitBody));
@@ -129,7 +130,7 @@ async function generatePersonalVibe(natalLongitudes, placements, now) {
     reasoning_effort: "low",
     messages: [
       { role: "system", content: VIBE_SYSTEM_PROMPT },
-      { role: "user", content: factLine },
+      { role: "user", content: withVoice(factLine, voiceSample) },
     ],
     temperature: 0.9,
     max_tokens: 150,
@@ -155,7 +156,7 @@ export default async function handler(req, res) {
     // Never let a CDN or browser reuse yesterday's line.
     res.setHeader("Cache-Control", "no-store, max-age=0");
 
-    const { sun, moon, rising, natal_chart_notes, for_date } = req.body || {};
+    const { sun, moon, rising, natal_chart_notes, for_date, voice_sample } = req.body || {};
     const natal = { sun: sun || undefined, moon: moon || undefined, rising: rising || undefined };
 
     // Pinned to noon UTC of the given date when for_date is sent (stable
@@ -173,7 +174,7 @@ export default async function handler(req, res) {
 
     if (Object.keys(natalLongitudes).length > 0) {
       try {
-        vibe = await generatePersonalVibe(natalLongitudes, placements, now);
+        vibe = await generatePersonalVibe(natalLongitudes, placements, now, voice_sample);
         if (vibe) personalized = true;
         else failureReason = "generation_failed";
       } catch (err) {

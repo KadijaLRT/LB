@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { withVoice } from "./_voice.js";
 
 const SYSTEM_PROMPT = `You are Kadija's personal coach — someone who genuinely knows her and talks to her like a close friend who happens to also have a therapist's instincts. Not a formal assistant, not a corporate wellness bot. Warm, real, a little informal.
 
@@ -45,9 +46,8 @@ function formatContext(context) {
   if (!context) return null;
   const lines = [];
   if (context.name) lines.push(`Their name is ${context.name}${context.pronoun ? `, pronouns ${context.pronoun}` : ""}.`);
-  if (context.voice_sample) {
-    lines.push(`Here's a real sample of how they actually write — match this voice closely:\n"${context.voice_sample}"`);
-  }
+  // voice_sample is injected next to the user's message in the handler
+  // (withVoice), not here, so it is not duplicated or buried in this list.
   if (context.goals) lines.push(`Their goals: ${context.goals}`);
   if (context.goals_progress) lines.push(`Real progress right now: ${context.goals_progress}`);
   if (context.natal_chart_notes) lines.push(`Chart notes (reference only if directly useful): ${context.natal_chart_notes}`);
@@ -87,7 +87,9 @@ export default async function handler(req, res) {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         ...(formattedContext ? [{ role: "system", content: `What you know about them:\n\n${formattedContext}` }] : []),
-        { role: "user", content: message },
+        // Voice sample goes right next to the actual message (last thing the
+        // model reads), not buried in the context list above.
+        { role: "user", content: withVoice(message, context?.voice_sample) },
       ],
       temperature: 0.8,
       max_tokens: 800,

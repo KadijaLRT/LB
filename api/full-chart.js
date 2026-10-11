@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { withVoice } from "./_voice.js";
 import {
   NATAL_POINTS,
   parseNatalLongitudes,
@@ -103,7 +104,7 @@ export default async function handler(req, res) {
         reasoning_effort: "low",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: dataBlock },
+          { role: "user", content: withVoice(dataBlock, profile?.content_voice_sample) },
         ],
         temperature: 0.8,
         max_tokens: 1400,

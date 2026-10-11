@@ -118,6 +118,11 @@ export default function ContentEngine({ profile, onSaved }) {
         <div className="flex items-center gap-2">
           <Mic size={14} className="text-clay" />
           <span className="text-xs uppercase tracking-[0.2em] text-muted">Brain dump → content</span>
+          <span className={`ml-auto text-[11px] ${profile?.content_voice_sample?.trim() ? "text-sage" : "text-fire"}`}>
+            {profile?.content_voice_sample?.trim()
+              ? "Matching your voice"
+              : "No voice sample saved (Settings)"}
+          </span>
         </div>
 
         <textarea

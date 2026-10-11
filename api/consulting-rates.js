@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { withVoice } from "./_voice.js";
 
 // Merged with funnel-builder.js into this one serverless function,
 // dispatched by req.body.mode ("funnel" runs the funnel builder, anything
@@ -78,7 +79,7 @@ Return strict JSON:
 
 async function handleRates(req, res) {
   try {
-    const { serviceType, experienceLevel, deliveryFormat, deliveryTime } = req.body || {};
+    const { serviceType, experienceLevel, deliveryFormat, deliveryTime, profile } = req.body || {};
     if (!serviceType || typeof serviceType !== "string") {
       return res.status(400).json({ error: "serviceType is required (what you're offering, e.g. 'operational workflow audit')." });
     }
@@ -103,7 +104,7 @@ async function handleRates(req, res) {
         model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: RATES_SYSTEM_PROMPT },
-          { role: "user", content: contextLines },
+          { role: "user", content: withVoice(contextLines, profile?.content_voice_sample) },
         ],
         temperature: 0.4,
         max_tokens: 900,
@@ -136,7 +137,7 @@ async function handleRates(req, res) {
 
 async function handleFunnel(req, res) {
   try {
-    const { niche, offerFormat } = req.body || {};
+    const { niche, offerFormat, profile } = req.body || {};
     if (!process.env.GROQ_API_KEY) {
       return res.status(500).json({ error: "GROQ_API_KEY is not configured on the server" });
     }
@@ -158,7 +159,7 @@ async function handleFunnel(req, res) {
         model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: FUNNEL_SYSTEM_PROMPT },
-          { role: "user", content: contextLines },
+          { role: "user", content: withVoice(contextLines, profile?.content_voice_sample) },
         ],
         temperature: 0.6,
         max_tokens: 2000,

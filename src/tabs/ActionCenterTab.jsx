@@ -41,6 +41,7 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
           moon: profile?.moon_sign,
           rising: profile?.rising_sign,
           natal_chart_notes: profile?.natal_chart_notes,
+          voice_sample: profile?.content_voice_sample,
         }),
       })
         .then((r) => r.json())
@@ -58,7 +59,7 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
       cancelled = true;
       clearInterval(interval);
     };
-  }, [profile?.sun_sign, profile?.moon_sign, profile?.rising_sign, profile?.natal_chart_notes]);
+  }, [profile?.sun_sign, profile?.moon_sign, profile?.rising_sign, profile?.natal_chart_notes, profile?.content_voice_sample]);
 
   useEffect(() => {
     if (!profile?.id) return;

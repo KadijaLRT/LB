@@ -1,8 +1,11 @@
 import Groq from "groq-sdk";
 
+import { buildVoiceBlock, withVoice } from "./_voice.js";
+
 const SYSTEM_PROMPT = `You help turn a rambling brain dump into tight, platform-native content for TikTok, Instagram, X, and Facebook — then give exact steps to actually post it.
 
 Voice for the actual generated content (script, caption, post) — this matters most:
+- ONE VOICE FOR ALL FOUR OUTPUTS. Write facebook_post and instagram_caption FIRST, in the person's natural, conversational voice; that is the reference voice. The tiktok_reels_script is that same voice said out loud. The x_post is the best line from the same thing, in the same words and rhythm. Never switch into a "punchy content creator" or "hook writer" register for the script or the X post; the platform limits change the LENGTH, never how the person sounds. If the TikTok script or X post sounds more polished, slogan-like or computerized than the Facebook post, rewrite it until it sounds like the same person typed all four.
 - Write it the way THIS person would actually say it out loud, not like generic content-creator copy. If you wouldn't say a line to a friend without cringing, cut it.
 - Avoid every AI-content tic: no "Let's dive in," no "Here's the thing," no "You won't believe," no stacked exclamation points, no emoji spam, no generic CTAs like "Drop a comment below!" or "Follow for more!" If a call-to-action fits, make it specific to what was actually said, not a template line.
 - Confident and direct, not hype-y. Real opinions read better than manufactured excitement.
@@ -21,7 +24,7 @@ Hard rules:
 - EACH PLATFORM HAS ITS OWN REAL CHARACTER/WORD LIMIT — these are the actual site rules, not arbitrary choices, so treat them as hard caps, never exceed them:
   - tiktok_reels_script: hook must be the very first line and land in under 3 seconds of read time. HARD CAP 130 words (this is a script-length choice for a short-form video, not a platform character limit — TikTok itself allows much longer captions, but a script this app generates needs to stay filmable in one breath). This same script also works for IG/FB Reels — don't write a separate video script for Instagram.
   - instagram_caption: NOT the video script — this is the caption that goes under the post/reel. Instagram's real limit is 2,200 characters, but only the first ~125 characters show before "...more" — so the actual constraint that matters is the FIRST LINE, which must land as a complete, punchy thought within 125 characters on its own, not get cut off mid-sentence. Keep the whole caption to 2-4 short lines total (well under the 2,200 ceiling — there's no reason to approach it for this kind of post). Still subject to every voice rule above. Hashtags go in the separate hashtags field, not inline in this caption text.
-  - x_post: X's real hard limit for a standard account is 280 characters — but for this app, HARD CAP AT 140 CHARACTERS EXACTLY, no exceptions, even though X itself would allow more. Count actual characters including spaces and punctuation before finalizing; if it's over 140, cut it down, don't pad a short one up. NOT a thread, NOT numbered, no "1/" "2/" "3/" markers. Hook-first still applies within that 140: the opening words should stop a scroll. Say one real thing well in 140 characters rather than a padded, vague version of two things.
+  - x_post: X's real hard limit for a standard account is 280 characters — but for this app, HARD CAP AT 140 CHARACTERS EXACTLY, no exceptions, even though X itself would allow more. Count actual characters including spaces and punctuation before finalizing; if it's over 140, cut it down, don't pad a short one up. NOT a thread, NOT numbered, no "1/" "2/" "3/" markers. Take the single best line or thought from the facebook_post/instagram_caption, keep the same words and rhythm, and trim it to fit. Do not turn it into a tweet-style slogan or a one-liner "take." One real thing said the way they'd say it beats a polished version of two things.
   - facebook_post: Facebook's real technical limit is enormous (60,000+ characters) — but a wall of text performs worse there, so this app's own house limit is max 80 words, a deliberate readability choice, not a platform constraint. Facebook rewards conversational tone and questions more than TikTok/IG do — lean into that. "Conversational" does not mean inventing a story that didn't happen — it means writing the way a person actually talks, still grounded in only what they said.
 - HASHTAGS — real 2026 platform research, not guesswork, and NOT tested against any live algorithm (this app has no access to that, never claim otherwise):
   - Broad/generic tags (#fyp, #foryou, #love, #instagood, #viral) provide ZERO measurable algorithmic benefit on any platform as of 2026 — they're saturated and platforms now ignore them as a ranking signal. NEVER suggest these. Every hashtag must be genuinely specific to what THIS piece is actually about.
@@ -49,10 +52,10 @@ Hard rules:
 Return strict JSON with this exact shape:
 {
   "core_message": "one sentence",
-  "tiktok_reels_script": "string, max 130 words, hook first line, no invented details/anecdotes, no banned phrases",
-  "instagram_caption": "string with line breaks, no hashtags inline, no invented details/anecdotes, no banned phrases",
-  "x_post": "string, HARD CAP 140 characters exactly (count it), not numbered, not a thread, no invented details/anecdotes, no banned phrases",
-  "facebook_post": "string, max 80 words, conversational, no invented details/anecdotes, no banned phrases",
+  "facebook_post": "WRITE THIS FIRST. string, max 80 words, conversational, in the person's real voice, no invented details/anecdotes, no banned phrases",
+  "instagram_caption": "WRITE THIS SECOND. string with line breaks, no hashtags inline, same voice as facebook_post, no invented details/anecdotes, no banned phrases",
+  "tiktok_reels_script": "string, max 130 words, hook first line, the SAME voice as facebook_post said out loud, no invented details/anecdotes, no banned phrases",
+  "x_post": "string, HARD CAP 140 characters exactly (count it), same words and voice as the posts above, not numbered, not a thread, no invented details/anecdotes, no banned phrases",
   "hashtags": {
     "tiktok": ["tag1", "tag2", "tag3"],
     "instagram": ["tag1", "tag2", "tag3"],
@@ -89,6 +92,7 @@ const IDEAS_SYSTEM_PROMPT = `You're helping a friend brainstorm actual post idea
 Voice for the hooks — this matters most: write them the way this person would actually say them out loud, not like generic content-creator copy. No "Let's talk about," no "Here's the thing," no stacked exclamation points, no hollow hype. A hook should sound like a real, specific thought someone had, not a marketing template with the topic swapped in. If a voice sample (their own actual past posts) is given, match its real rhythm and word choice closely — weight that heavily.
 
 Rules:
+- Their goal on every platform is to go viral and to monetize. Weight the 5 ideas toward formats that are naturally shareable and saveable (relatable, a clear take, a named series someone could follow) and that could later lead to something sellable or a consulting offer, without turning any hook into a sales pitch. Never promise or imply an idea will go viral.
 - Generate exactly 5 ideas.
 - Each idea must be a SPECIFIC angle, not a topic. Bad: "talk about productivity." Good: "The productivity advice that actually made things worse for me, and what I do instead."
 - Each idea needs a ready-to-use hook line (the literal first sentence someone would say/write) — not a description of a hook, the actual hook text.
@@ -152,7 +156,7 @@ async function handleNicheHooks(req, res) {
     const contextLines = [
       `Niche/field: ${resolvedNiche}`,
       focusTopic && `Specific focus for this batch: ${focusTopic}`,
-      profile?.content_voice_sample && `Their own actual past posts (match this rhythm/voice closely):\n${profile.content_voice_sample}`,
+      buildVoiceBlock(profile?.content_voice_sample),
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -222,12 +226,11 @@ async function handleIdeas(req, res) {
 
     const contextLines = [
       profile?.name && `Name: ${profile.name}`,
-      profile?.content_voice_sample &&
-        `Their own actual past posts (match this rhythm/voice closely):\n${profile.content_voice_sample}`,
       profile?.personality_profile &&
         `Their real, self-reported personality profile — let it bias which formats/angles feel natural per the rules above, never a topic itself: ${profile.personality_profile}`,
       profile?.core_goals && `Their goals, background only — remember the hard cap, at most 1 of 5 ideas: ${profile.core_goals}`,
       seedTopic && `They specifically want ideas related to: ${seedTopic}`,
+      buildVoiceBlock(profile?.content_voice_sample),
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -289,8 +292,6 @@ async function handleScript(req, res) {
     const contextLines = profile
       ? [
           profile.name && `Name: ${profile.name}`,
-          profile.content_voice_sample &&
-            `Their own actual past posts (match this rhythm/voice closely — this is the best real signal for how they sound):\n${profile.content_voice_sample}`,
           profile.personality_profile &&
             `Their real, self-reported personality profile (MBTI, Enneagram, Human Design, etc.) — let it inform voice/angle ONLY where it genuinely fits, most content should never mention it: ${profile.personality_profile}`,
           profile.core_goals && `Background context only, do not force a connection: ${profile.core_goals}`,
@@ -298,6 +299,8 @@ async function handleScript(req, res) {
           .filter(Boolean)
           .join("\n\n")
       : "";
+
+    const voiceBlock = buildVoiceBlock(profile?.content_voice_sample);
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     let completion;
@@ -308,7 +311,10 @@ async function handleScript(req, res) {
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           ...(contextLines ? [{ role: "system", content: `Creator context:\n${contextLines}` }] : []),
-          { role: "user", content: brainDump },
+          {
+            role: "user",
+            content: voiceBlock ? `BRAIN DUMP:\n${brainDump}\n\n${voiceBlock}` : brainDump,
+          },
         ],
         temperature: 0.8,
         max_tokens: 2200,
@@ -360,11 +366,129 @@ async function handleScript(req, res) {
       parsed.hashtags = { tiktok: [], instagram: [], x: [], facebook: [] };
     }
 
+    // Lets the UI show whether a voice sample was actually applied, so a
+    // missing/unsaved sample is visible instead of silently generic.
+    parsed.voice_used = !!voiceBlock;
+
     return res.status(200).json(parsed);
   } catch (err) {
     const detail = err?.error?.message || err?.message || "Unknown server error";
     console.error("Content endpoint crashed:", err);
     return res.status(500).json({ error: `Content engine failed: ${detail}` });
+  }
+}
+
+// Social media strategist: a real multi-turn coach for the Content tab, not a
+// one-shot Q&A. Knows what they have already made and posted (recentContent)
+// so advice builds on their actual body of work. Merged into this function
+// (mode "strategist") to stay under Vercel Hobby's 12-function cap.
+const STRATEGIST_SYSTEM_PROMPT = `You are this person's social media coach and strategist for TikTok, Instagram, X and Facebook. You think like a sharp strategist who also happens to be a friend: you give real positions and a clear plan, not a menu of options and not generic creator advice.
+
+THE GOAL (fixed, applies to every platform): she wants to go viral and to monetize. Every recommendation should serve one or both, and you should say which. Treat the two as linked: reach is only valuable if there is somewhere for it to go, so pair reach-building content (shareable, relatable, high-retention, saveable) with a clear path to money (an offer, a lead magnet, a link, a brand-deal-ready niche, platform payout programs, consulting or digital products). Concretely:
+- For reach: favor formats built around the signals platforms weight (watch-through, shares, saves, comments, consistency), tight hooks, one clear idea per post, and repeatable series she can batch. Prefer a series with a name over one-off posts.
+- For money: at least once per plan, include a step that moves attention toward income (a pinned post, a link in bio offer, a soft call to action tied to the actual post, a waitlist or lead capture). Do not make every post a sales pitch; a common split is mostly value and a minority of posts that point to the offer.
+- Be straight about timing and odds: virality cannot be engineered or promised, and monetization usually comes from a small engaged audience with a clear offer before it comes from huge numbers. Say that plainly when it matters, without being discouraging.
+- Do not state platform payout thresholds, program requirements or rates as fact; they change. Tell her to check each platform's current creator program requirements, and help her work out what to build toward them.
+
+What you do:
+- Strategy: content pillars, a repeatable weekly cadence, what to post today, which platform an idea belongs on, how to reuse one idea across platforms, how to build toward a specific goal (audience, authority, leads, income).
+- Diagnosis: when they paste a draft, hook or script, say what is weak and exactly how to fix it, then show the fixed version. When they describe something that flopped or worked, work out why from the specifics.
+- Planning: when asked for a plan (week, month, launch), give a concrete, dated-by-weekday list with the platform and the idea for each slot, sized for someone with ADHD: few slots, low friction, batchable.
+- Accountability: use what they have already made and posted (given below as their recent content) to spot patterns, gaps, repeats and what to make next. Refer to those pieces specifically.
+
+Rules:
+- Lead with the answer or the plan. No intro, no restating the question, no wrap-up recap.
+- Be honest about what you cannot know. You have NO access to their analytics, live trends, trending sounds or what the algorithm is doing today. Never invent metrics, view counts, trends, or claim something will go viral or perform. Frame platform advice as the well-documented signals (watch-through, saves, shares, comments, posting consistency) and say what to measure so THEY can check it.
+- Do not invent facts about their life, audience, past posts or results. If you need one thing to give good advice (niche, goal, platform, how much time they have), ask exactly one short question, and still give your best provisional answer in the same reply.
+- Ground advice in their niche and goals only where it genuinely fits. Do not force their goals into every idea.
+- Short and scannable. Bullets or a short list for plans; plain sentences for judgment calls. Keep most replies under 180 words unless they asked for a full plan.
+- Any copy you write for them (hooks, captions, scripts, posts) must be in their own voice per the voice rule, and must not use motivational-poster phrasing or generic CTAs.
+- You are a strategist, not a therapist. If they are venting about burnout, acknowledge it in one line and then make the plan smaller, not bigger.`;
+
+function summarizeRecentContent(items) {
+  if (!Array.isArray(items) || items.length === 0) return "";
+  return items
+    .slice(0, 12)
+    .map((it, i) => {
+      const topic = String(it?.topic || "").replace(/\s+/g, " ").trim().slice(0, 140);
+      const posted = Array.isArray(it?.posted_on) && it.posted_on.length ? `posted on ${it.posted_on.join(", ")}` : "not posted yet";
+      const when = it?.created ? ` (${String(it.created).slice(0, 10)})` : "";
+      return `${i + 1}. [${it?.status || "draft"}, ${posted}]${when} ${topic}`;
+    })
+    .join("\n");
+}
+
+async function handleStrategist(req, res) {
+  try {
+    const { profile, messages, recentContent } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "Missing 'messages' array." });
+    }
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ error: "GROQ_API_KEY is not configured on the server" });
+    }
+
+    // Only well-formed user/assistant turns, capped, so a bad client payload
+    // cannot inject system messages or blow the context window.
+    const cleaned = messages
+      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
+      .slice(-12)
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    if (cleaned.length === 0 || cleaned[cleaned.length - 1].role !== "user") {
+      return res.status(400).json({ error: "Last message must be from the user." });
+    }
+
+    const contextLines = [
+      profile?.name && `Their name: ${profile.name}`,
+      profile?.core_goals && `Their goals (background; only use where it genuinely fits): ${profile.core_goals}`,
+      profile?.personality_profile && `Their self-reported personality profile (weak signal; shapes angle, never voice): ${profile.personality_profile}`,
+      summarizeRecentContent(recentContent)
+        ? `Their recent content in this app, newest first:\n${summarizeRecentContent(recentContent)}`
+        : "They have not saved any content in this app yet.",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    // Voice block goes on the LAST user turn so it is the last thing read.
+    const last = cleaned.length - 1;
+    cleaned[last] = { role: "user", content: withVoice(cleaned[last].content, profile?.content_voice_sample) };
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    let completion;
+    try {
+      completion = await groq.chat.completions.create({
+        model: "openai/gpt-oss-120b",
+        reasoning_effort: "low",
+        messages: [
+          { role: "system", content: STRATEGIST_SYSTEM_PROMPT },
+          { role: "system", content: `What you know about them:\n\n${contextLines}` },
+          ...cleaned,
+        ],
+        temperature: 0.7,
+        max_tokens: 900,
+      });
+    } catch (err) {
+      const detail = err?.error?.message || err?.message || "Unknown Groq error";
+      console.error("Groq strategist call failed:", detail);
+      return res.status(502).json({ error: `Strategist call failed: ${detail}` });
+    }
+
+    let reply = completion.choices?.[0]?.message?.content?.trim() || "";
+    if (!reply) {
+      return res.status(502).json({
+        error: `The strategist returned an empty response (finish_reason: ${completion.choices?.[0]?.finish_reason || "unknown"}). Try again.`,
+      });
+    }
+    // A reply cut off at the token limit should not end mid-sentence.
+    if (completion.choices?.[0]?.finish_reason === "length") {
+      const end = Math.max(reply.lastIndexOf("."), reply.lastIndexOf("!"), reply.lastIndexOf("?"), reply.lastIndexOf("\n"));
+      if (end > 40) reply = reply.slice(0, end + 1);
+    }
+    return res.status(200).json({ reply });
+  } catch (err) {
+    const detail = err?.error?.message || err?.message || "Unknown server error";
+    console.error("Strategist endpoint crashed:", err);
+    return res.status(500).json({ error: `Strategist failed: ${detail}` });
   }
 }
 
@@ -383,6 +507,9 @@ export default async function handler(req, res) {
   }
   if (req.body?.mode === "niche-hooks") {
     return handleNicheHooks(req, res);
+  }
+  if (req.body?.mode === "strategist") {
+    return handleStrategist(req, res);
   }
   return handleScript(req, res);
 }

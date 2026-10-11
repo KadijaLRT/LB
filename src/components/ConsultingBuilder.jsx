@@ -120,7 +120,7 @@ export default function ConsultingBuilder({ profile }) {
       const res = await fetch("/api/consulting-rates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ serviceType, experienceLevel: experienceLevel || undefined }),
+        body: JSON.stringify({ serviceType, experienceLevel: experienceLevel || undefined, profile }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
@@ -139,7 +139,7 @@ export default function ConsultingBuilder({ profile }) {
       const res = await fetch("/api/consulting-rates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "funnel", niche: niche || undefined }),
+        body: JSON.stringify({ mode: "funnel", niche: niche || undefined, profile }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);

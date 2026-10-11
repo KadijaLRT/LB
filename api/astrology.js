@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { withVoice } from "./_voice.js";
 import {
   currentPlacements,
   parseNatalLongitudes,
@@ -202,7 +203,7 @@ ${priorReading ? `The reading they already received: "${priorReading}"\n\n` : ""
     const completion = await groq.chat.completions.create({
       model: "openai/gpt-oss-120b",
       reasoning_effort: "low",
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      messages: [{ role: "system", content: withVoice(systemPrompt, profile?.content_voice_sample) }, ...messages],
       temperature: 0.7,
       max_tokens: 500,
     });
@@ -360,7 +361,7 @@ async function handleReading(req, res) {
     const personalityBlock = profile?.personality_profile
       ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — reference ONLY if it genuinely sharpens this specific reading, never force it in; most readings should not mention it at all):\n${profile.personality_profile}`
       : "";
-    const userContent = dataBlock + personalityBlock;
+    const userContent = withVoice(dataBlock + personalityBlock, profile?.content_voice_sample);
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const completion = await groq.chat.completions.create({
