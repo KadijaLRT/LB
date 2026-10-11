@@ -101,13 +101,14 @@ async function handleRates(req, res) {
     let completion;
     try {
       completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
+        reasoning_effort: "low",
         messages: [
           { role: "system", content: RATES_SYSTEM_PROMPT },
           { role: "user", content: withVoice(contextLines, profile?.content_voice_sample) },
         ],
         temperature: 0.4,
-        max_tokens: 900,
+        max_tokens: 1600,
         response_format: { type: "json_object" },
       });
     } catch (err) {
@@ -156,13 +157,14 @@ async function handleFunnel(req, res) {
     let completion;
     try {
       completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
+        reasoning_effort: "low",
         messages: [
           { role: "system", content: FUNNEL_SYSTEM_PROMPT },
           { role: "user", content: withVoice(contextLines, profile?.content_voice_sample) },
         ],
         temperature: 0.6,
-        max_tokens: 2000,
+        max_tokens: 3000,
         response_format: { type: "json_object" },
       });
     } catch (err) {

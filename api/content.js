@@ -166,13 +166,14 @@ async function handleNicheHooks(req, res) {
     let completion;
     try {
       completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
+        reasoning_effort: "low",
         messages: [
           { role: "system", content: HOOKS_SYSTEM_PROMPT },
           { role: "user", content: contextLines },
         ],
         temperature: 0.8,
-        max_tokens: 1800,
+        max_tokens: 2600,
         response_format: { type: "json_object" },
       });
     } catch (err) {
@@ -465,7 +466,7 @@ async function handleStrategist(req, res) {
           ...cleaned,
         ],
         temperature: 0.7,
-        max_tokens: 900,
+        max_tokens: 1400,
       });
     } catch (err) {
       const detail = err?.error?.message || err?.message || "Unknown Groq error";

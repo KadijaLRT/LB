@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Calendar, ChevronDown, Info, Check, Circle } from "lucide-react";
+import { Calendar, Info, Check, Circle } from "lucide-react";
 import { listScripts, toggleScriptPlatformPosted } from "../lib/db.js";
 import { localDateString } from "../lib/date.js";
 
@@ -55,7 +55,6 @@ const CONTENT_FIELD = {
 };
 
 export default function PostingCalendar({ profile, refreshKey }) {
-  const [open, setOpen] = useState(false);
   const [scripts, setScripts] = useState(null);
   const [error, setError] = useState("");
   // Tracks busy by script id alone, not scriptId+platform — the real race
@@ -67,14 +66,14 @@ export default function PostingCalendar({ profile, refreshKey }) {
   const [busyScriptIds, setBusyScriptIds] = useState(() => new Set());
 
   useEffect(() => {
-    if (!open || !profile?.id) return;
+    if (!profile?.id) return;
     listScripts(profile.id, 30)
       .then(setScripts)
       .catch((err) => {
         console.error(err);
         setError("Couldn't load your content.");
       });
-  }, [open, profile?.id, refreshKey]);
+  }, [profile?.id, refreshKey]);
 
   async function togglePosted(script, platformKey) {
     if (busyScriptIds.has(script.id)) return;
@@ -108,15 +107,12 @@ export default function PostingCalendar({ profile, refreshKey }) {
 
   return (
     <div className="border border-line rounded-2xl overflow-hidden">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center justify-between px-4 py-3">
-        <span className="flex items-center gap-2 text-sm text-cream">
-          <Calendar size={14} className="text-clay" />
-          Posting tracker & when to post
-        </span>
-        <ChevronDown size={16} className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
+      <div className="flex items-center gap-2 px-4 py-3 text-sm text-cream">
+        <Calendar size={14} className="text-clay" />
+        Posting tracker & when to post
+      </div>
 
-      {open && (
+      {(
         <div className="border-t border-line p-4 flex flex-col gap-5">
           {error && <p className="text-sm text-fire">{error}</p>}
 

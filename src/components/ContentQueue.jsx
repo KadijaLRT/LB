@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Check, Trash2, Copy, Zap, TrendingUp } from "lucide-react";
+import { Check, Trash2, Copy, Zap, TrendingUp } from "lucide-react";
 import { listScripts, cycleScriptStatus, deleteScript } from "../lib/db.js";
 
 const STATUS_LABEL = { draft: "Draft", ready: "Ready", posted: "Posted" };
@@ -163,7 +163,6 @@ function ExpandedQueueItem({ script }) {
 }
 
 export default function ContentQueue({ profile, refreshKey }) {
-  const [open, setOpen] = useState(false);
   const [scripts, setScripts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
@@ -171,7 +170,7 @@ export default function ContentQueue({ profile, refreshKey }) {
   const [busyIds, setBusyIds] = useState(() => new Set());
 
   useEffect(() => {
-    if (!open || !profile?.id) return;
+    if (!profile?.id) return;
     setLoading(true);
     listScripts(profile.id, 20)
       .then(setScripts)
@@ -180,7 +179,7 @@ export default function ContentQueue({ profile, refreshKey }) {
         setActionError("Couldn't load your queue.");
       })
       .finally(() => setLoading(false));
-  }, [open, profile?.id, refreshKey]);
+  }, [profile?.id, refreshKey]);
 
   async function cycleStatus(script) {
     if (busyIds.has(script.id)) return; // still a good UX guard even though the backend now makes the underlying race impossible regardless
@@ -222,16 +221,9 @@ export default function ContentQueue({ profile, refreshKey }) {
 
   return (
     <div className="border border-line rounded-2xl overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm text-cream"
-      >
-        Your queue
-        <ChevronDown size={16} className={`text-muted transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="border-t border-line divide-y divide-line max-h-96 overflow-y-auto">
+      <div className="px-4 py-3 text-sm text-cream">Your queue</div>
+      {(
+        <div className="border-t border-line divide-y divide-line">
           {loading && <p className="p-4 text-sm text-muted">Loading…</p>}
           {actionError && <p className="px-4 pt-3 text-sm text-fire">{actionError}</p>}
           {!loading && scripts.length === 0 && (
