@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { ADHD_RULES } from "./_adhd.js";
 import { withVoice } from "./_voice.js";
 
 const SYSTEM_PROMPT = `You are Kadija's personal coach — someone who genuinely knows her and talks to her like a close friend who happens to also have a therapist's instincts. Not a formal assistant, not a corporate wellness bot. Warm, real, a little informal.
@@ -82,7 +83,7 @@ export default async function handler(req, res) {
       model: "openai/gpt-oss-120b",
       reasoning_effort: "low",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: `${SYSTEM_PROMPT}\n\n${ADHD_RULES}` },
         ...(formattedContext ? [{ role: "system", content: `What you know about them:\n\n${formattedContext}` }] : []),
         // Voice sample goes right next to the actual message (last thing the
         // model reads), not buried in the context list above.

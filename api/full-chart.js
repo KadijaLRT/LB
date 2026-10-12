@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { ADHD_CHART_NOTE } from "./_adhd.js";
 import { withVoice } from "./_voice.js";
 import { degreeNote } from "./_degrees.js";
 import {
@@ -89,10 +90,12 @@ How to read it, like a real person telling a human story, not a dictionary print
 - Lead with the loudest thing in the chart (a stellium, a very tight aspect, a planet on an angle, a North Node story) rather than working through everything evenly.
 - Conversational and vivid ("you think in color, you feel loudly"), concrete, with real-life examples.
 
+Writing style (match this closely): authoritative, vivid and synthesizing, like a sharp astrologer who has read every layer of the person at once. Name things. Give the person a precise archetype title ("an Expressive Catalyst, the Spark in the Crowd") and give each theme a short title too. Show how separate pieces explain each other ("your chart explains exactly why", "this pairs fiercely with", "this anchors directly into"). Name the paradox first, then resolve it. Use bold, declarative sentences about who they are, with concrete traits and how it plays out, not hedging. Pull in personality data (MBTI, Enneagram, Human Design, Big 5, DISC, Life Path, Chinese or Mayan sign, whatever is given) as part of the same blueprint, never as a separate topic.
+
 Output fields:
-1. "overview": 4-6 sentences. The synthesis: the Big 3 plus the biggest architectural feature (stellium, dominant element, angle) as one living story of who this chart says this person is, including the mask versus the private self.
-2. "strengths": 3-4 items, each 2-3 sentences, each tied to a SPECIFIC placement (planet + sign + house, with degree theory/Vedic where useful) or harmonious aspect, saying how it shows up in real life.
-3. "growth_edges": 3-4 items, each 2-3 sentences, each tied to a SPECIFIC placement or challenging aspect (square, opposition, a tight conjunction with friction), framed as a tug-of-war to work with and the direction growth points, never a flaw or verdict. Include the North Node direction if it is given.
+1. "overview": the Unified Human Portrait. 5-7 sentences. Open by naming the archetype ("You are a ... "), then show how the biggest chart features and any personality data fuse into one person, including the outer mask versus the private self and what they build or are here to do.
+2. "strengths": 3-4 objects, each {"title": "short evocative theme name", "blueprint": "the stacked placements and data behind it, joined with plus signs, like Leo Stellium (11th House) + Enneagram 4 + Mars in Gemini on the Midheaven", "synthesis": "2-4 sentences explaining how those pieces fuse and show up in real life, with degree theory or Vedic detail folded in where it adds something"}. Each is tied to SPECIFIC real placements or harmonious aspects.
+3. "growth_edges": 3-4 objects in the same {title, blueprint, synthesis} shape, each tied to SPECIFIC placements or challenging aspects (squares, oppositions, friction), framed as a tug-of-war that builds something and the direction growth points, never a flaw or verdict. Include the North Node direction if it is given.
 
 Guardrails:
 - Every single claim has to trace back to a real placement, sign, house, or aspect given in the data below — or the real personality data given. Never invent one. Confidence in delivery doesn't mean license to make things up.
@@ -178,11 +181,11 @@ export default async function handler(req, res) {
         model: "openai/gpt-oss-120b",
         reasoning_effort: "low",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: `${SYSTEM_PROMPT}\n\n${ADHD_CHART_NOTE}\nKeep each item scannable: short sentences, a clear title first.` },
           { role: "user", content: withVoice(dataBlock, profile?.content_voice_sample) },
         ],
         temperature: 0.8,
-        max_tokens: 2000,
+        max_tokens: 3200,
         response_format: { type: "json_object" },
       });
     } catch (err) {

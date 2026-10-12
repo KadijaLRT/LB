@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 
 import { buildVoiceBlock, withVoice } from "./_voice.js";
+import { ADHD_RULES } from "./_adhd.js";
 
 const SYSTEM_PROMPT = `You help turn a rambling brain dump into tight, platform-native content for TikTok, Instagram, X, and Facebook — then give exact steps to actually post it.
 
@@ -14,7 +15,7 @@ Voice for the actual generated content (script, caption, post) — this matters 
 - DO NOT default to a "here's my problem, here's the solution" arc just because that's a common content pattern. Look at what the brain dump actually is: if it's a reflection, an opinion, something they're processing, or just a topic that affects them that they want to talk about — let the content BE that. A thoughtful take doesn't need a manufactured struggle-then-fix structure bolted onto it. Match the actual shape of what they said, don't force it into a template.
 - DO NOT convert a general statement into a fake first-person anecdote. If the brain dump says "mature relationships mean fighting, then talking it out" — that's a general opinion, not a story. Do NOT rewrite it as "we fought, but we talked it out" — that invents a specific incident that didn't happen and puts words in their mouth about their actual relationship. Keep a general statement general. Only write it as "I/we" if the brain dump itself was already telling a specific personal story.
 - If a voice_sample is given, that's a real sample of exactly how this person writes — read it and match its actual sentence length, punctuation, and word choices as closely as you can. This is not about matching a demographic, a dialect, or an assumption about how anyone "should" sound — it's about matching this one specific person's real writing, and it overrides every other voice instruction here. If no voice_sample is given, just write in plain, direct spoken English — don't guess at an identity, a dialect, or a "voice" for someone you have no sample from. Plain and honest beats a guessed performance every time.
-- If a real, self-reported personality profile is given (MBTI, Enneagram, Human Design, etc.), it's a much weaker signal than voice_sample — never lets it override actual writing samples. Use it only where it might genuinely shape a content ANGLE, not the voice itself (e.g. an Enneagram 4 leaning into a more individual, "here's my honest take" framing might fit; that's different from changing how the sentences sound). Most content should show no trace of it at all.
+- If a real, self-reported personality profile is given (MBTI, Enneagram, Human Design, DISC, Big 5, etc.), use it actively: let it shape the angle, the hook style, what she is bold or vulnerable about, how structured or spontaneous the delivery steps are, and which platform energy fits her. Her voice sample still decides how the sentences sound and always wins on wording. Never name or explain the personality type in the content itself (no "as an Enneagram 4"); it should be felt in the choices, not stated.
 - NEVER INVENT SPECIFIC DETAILS THAT AREN'T IN THE BRAIN DUMP. This is the most common way this goes wrong: given a short or general statement, filling the gap with a fabricated scenario, example, or backstory to hit the word count. If someone writes "I deserve the most romantic man in the world," don't invent "someone who writes me love notes and shows up with flowers" — they never said that, and it stops being their words the moment you add specifics they didn't give you. When the source material is short or general, the content should STAY short and general and lean on delivery/conviction/pacing to carry it, not manufactured specificity. Only use a detail, example, or scenario that the person actually stated or that is a direct, unavoidable restatement of what they said — never a plausible-sounding invention.
 - If the brain dump is very short (a single sentence or two), it's completely fine for the output to also be short rather than padded to fill 130 words. A confident 15-word hook that's genuinely theirs beats 100 words of invented specifics.
 
@@ -97,7 +98,7 @@ Rules:
 - Each idea must be a SPECIFIC angle, not a topic. Bad: "talk about productivity." Good: "The productivity advice that actually made things worse for me, and what I do instead."
 - Each idea needs a ready-to-use hook line (the literal first sentence someone would say/write) — not a description of a hook, the actual hook text.
 - Vary the format across the 5: mix at least one listicle-style, one personal story/confession, one contrarian/hot-take, one "here's exactly how" tutorial-style, and one relatable-pain-point.
-- If a real, self-reported personality profile is given (MBTI, Enneagram, DISC, Human Design, etc.), let it genuinely bias WHICH formats/angles feel most natural for this specific person — e.g. someone who's an Enneagram 4 or similarly identity/individuality-oriented type might naturally lean toward confession and hot-take formats over tutorials; a more structure-oriented type (DISC "C," MBTI "J" types) might naturally produce sharper tutorial/listicle angles. This should shape the MIX of the 5 ideas, never become a topic itself — nobody wants to read "5 things about being an Enneagram 4." The personality data should be invisible in the output, only felt in which angles got picked.
+- If a real, self-reported personality profile is given (MBTI, Enneagram, DISC, Human Design, Big 5, etc.), let it strongly bias WHICH formats and angles fit this specific person: identity and individuality types (Enneagram 4) lean into honest-take, confession and story formats; structure types (DISC C, MBTI J) produce sharper tutorial and listicle angles; high-influence, high-extraversion types suit on-camera, direct-to-audience formats. Let it shape the MIX of the 5 ideas and their hooks. Never make the personality type itself a topic, and never name it in the ideas.
 - best_platform: pick the ONE platform (TikTok, Instagram, X, or Facebook) this specific angle would perform best on, and say why in one short phrase.
 - Never explain what you did. Output ONLY the JSON below, no markdown fences.
 
@@ -168,7 +169,7 @@ async function handleNicheHooks(req, res) {
         model: "openai/gpt-oss-120b",
         reasoning_effort: "low",
         messages: [
-          { role: "system", content: HOOKS_SYSTEM_PROMPT },
+          { role: "system", content: `${HOOKS_SYSTEM_PROMPT}\n\n${ADHD_RULES}` },
           { role: "user", content: contextLines },
         ],
         temperature: 0.8,
@@ -227,7 +228,7 @@ async function handleIdeas(req, res) {
     const contextLines = [
       profile?.name && `Name: ${profile.name}`,
       profile?.personality_profile &&
-        `Their real, self-reported personality profile — let it bias which formats/angles feel natural per the rules above, never a topic itself: ${profile.personality_profile}`,
+        `Their real, self-reported personality profile — use it actively to shape which formats, angles and hooks fit her per the rules above; never name it in the output or make it a topic: ${profile.personality_profile}`,
       seedTopic && `They specifically want ideas related to: ${seedTopic}`,
       buildVoiceBlock(profile?.content_voice_sample),
     ]
@@ -241,7 +242,7 @@ async function handleIdeas(req, res) {
         model: "openai/gpt-oss-120b",
         reasoning_effort: "low",
         messages: [
-          { role: "system", content: IDEAS_SYSTEM_PROMPT },
+          { role: "system", content: `${IDEAS_SYSTEM_PROMPT}\n\n${ADHD_RULES}` },
           {
             role: "user",
             content: contextLines || "No specific context given — generate broadly appealing, format-diverse ideas.",
@@ -292,7 +293,7 @@ async function handleScript(req, res) {
       ? [
           profile.name && `Name: ${profile.name}`,
           profile.personality_profile &&
-            `Their real, self-reported personality profile (MBTI, Enneagram, Human Design, etc.) — let it inform voice/angle ONLY where it genuinely fits, most content should never mention it: ${profile.personality_profile}`,
+            `Their real, self-reported personality profile (MBTI, Enneagram, Human Design, etc.) — use it actively to shape the angle, hook style and delivery steps (her voice sample still decides the wording); never name the type in the content itself: ${profile.personality_profile}`,
         ]
           .filter(Boolean)
           .join("\n\n")
@@ -307,7 +308,7 @@ async function handleScript(req, res) {
         model: "openai/gpt-oss-120b",
         reasoning_effort: "low",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: `${SYSTEM_PROMPT}\n\n${ADHD_RULES}` },
           ...(contextLines ? [{ role: "system", content: `Creator context:\n${contextLines}` }] : []),
           {
             role: "user",
@@ -453,7 +454,7 @@ async function handleStrategist(req, res) {
 
     const contextLines = [
       profile?.name && `Their name: ${profile.name}`,
-      profile?.personality_profile && `Their self-reported personality profile (weak signal; shapes angle, never voice): ${profile.personality_profile}`,
+      profile?.personality_profile && `Their self-reported personality profile (use it actively in strategy: which formats she will actually sustain, what angles and hooks fit her wiring, where she is likely to burn out or stall, and how to monetize in a way that suits her; never overrides her voice sample): ${profile.personality_profile}`,
       summarizeRecentContent(recentContent)
         ? `Their recent content in this app, newest first:\n${summarizeRecentContent(recentContent)}`
         : "They have not saved any content in this app yet.",
@@ -472,7 +473,7 @@ async function handleStrategist(req, res) {
         model: "openai/gpt-oss-120b",
         reasoning_effort: "low",
         messages: [
-          { role: "system", content: STRATEGIST_SYSTEM_PROMPT },
+          { role: "system", content: `${STRATEGIST_SYSTEM_PROMPT}\n\n${ADHD_RULES}` },
           { role: "system", content: `What you know about them:\n\n${contextLines}` },
           ...cleaned,
         ],

@@ -12,6 +12,7 @@
 // into one sentence.
 
 import Groq from "groq-sdk";
+import { ADHD_BRIEF } from "./_adhd.js";
 import { withVoice } from "./_voice.js";
 import { degreeNote } from "./_degrees.js";
 import { signForLongitude, currentPlacements, ELEMENT_BY_SIGN, parseNatalLongitudes, currentTransitAspects } from "./_ephemeris.js";
@@ -140,24 +141,41 @@ async function generatePersonalVibe(natalLongitudes, placements, now, voiceSampl
   }
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const completion = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
-    reasoning_effort: "low",
-    messages: [
-      { role: "system", content: VIBE_SYSTEM_PROMPT },
-      { role: "user", content: withVoice(factLine, voiceSample) },
-    ],
-    temperature: 0.9,
-    max_tokens: 150,
-  });
 
-  let line = completion.choices?.[0]?.message?.content?.trim() || "";
-  if (!line) return null;
-
-  if (completion.choices?.[0]?.finish_reason === "length") {
-    const lastSentenceEnd = Math.max(line.lastIndexOf("."), line.lastIndexOf("!"), line.lastIndexOf("?"));
-    if (lastSentenceEnd > -1) line = line.slice(0, lastSentenceEnd + 1);
+  // The model spends part of max_tokens on hidden reasoning, and the longer
+  // fact line (degree theory + personality) made it use more, so a 150 cap
+  // could leave the visible line empty. Generous cap, plus one retry on the
+  // plain fact line if the first attempt comes back empty.
+  async function attempt(fact) {
+    const completion = await groq.chat.completions.create({
+      model: "openai/gpt-oss-120b",
+      reasoning_effort: "low",
+      messages: [
+        { role: "system", content: `${VIBE_SYSTEM_PROMPT}\n\n${ADHD_BRIEF}` },
+        { role: "user", content: withVoice(fact, voiceSample) },
+      ],
+      temperature: 0.9,
+      max_tokens: 800,
+    });
+    let text = completion.choices?.[0]?.message?.content?.trim() || "";
+    if (text && completion.choices?.[0]?.finish_reason === "length") {
+      const end = Math.max(text.lastIndexOf("."), text.lastIndexOf("!"), text.lastIndexOf("?"));
+      if (end > -1) text = text.slice(0, end + 1);
+    }
+    return text;
   }
+
+  let line = "";
+  try {
+    line = await attempt(factLine);
+  } catch (err) {
+    console.error("Vibe attempt 1 failed:", err?.message || err);
+  }
+  if (!line) {
+    const plain = factLine.split(" Degree theory on")[0].split(" Their self-reported")[0];
+    line = await attempt(plain);
+  }
+  if (!line) return null;
   return line;
 }
 

@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { ADHD_BRIEF } from "./_adhd.js";
 import { withVoice } from "./_voice.js";
 
 // Merged with funnel-builder.js into this one serverless function,
@@ -104,7 +105,7 @@ async function handleRates(req, res) {
         model: "openai/gpt-oss-120b",
         reasoning_effort: "low",
         messages: [
-          { role: "system", content: RATES_SYSTEM_PROMPT },
+          { role: "system", content: `${RATES_SYSTEM_PROMPT}\n\n${ADHD_BRIEF}` },
           { role: "user", content: withVoice(contextLines, profile?.content_voice_sample) },
         ],
         temperature: 0.4,
@@ -160,7 +161,7 @@ async function handleFunnel(req, res) {
         model: "openai/gpt-oss-120b",
         reasoning_effort: "low",
         messages: [
-          { role: "system", content: FUNNEL_SYSTEM_PROMPT },
+          { role: "system", content: `${FUNNEL_SYSTEM_PROMPT}\n\n${ADHD_BRIEF}` },
           { role: "user", content: withVoice(contextLines, profile?.content_voice_sample) },
         ],
         temperature: 0.6,

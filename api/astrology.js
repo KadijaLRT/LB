@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { ADHD_BRIEF, ADHD_CHART_NOTE } from "./_adhd.js";
 import { withVoice } from "./_voice.js";
 import { degreeNote } from "./_degrees.js";
 import {
@@ -41,7 +42,8 @@ How to write this:
 1. Look at the real computed data below (Western tropical, Vedic sidereal, nakshatras, houses, real aspects) and find the single most specific, most interesting thing in there for ${area} right now.
 2. State it directly and with confidence, the way an astrology account states things — declarative, a little bit "here's what's actually happening," not hedged with "might" and "could." Use the real astrological terms (planet names, signs, retrograde, houses, nakshatras) plainly and directly — don't soften them into vague plain-English paraphrases. Someone who follows astrology content should recognize this as the real thing, not a watered-down version.
 3. It's fine — good, even — to fold a direct piece of advice or a "watch out for X" / "this is your sign to Y" right into the read itself, the way real horoscope content does, instead of always holding it back for a separate list.
-4. Keep it grounded in the ONE most interesting real thing — don't try to cover every data point. Punchy and specific beats comprehensive.
+4. Write with synthesis and authority: name the paradox or pattern, then show how the placements, degree theory, Vedic detail and personality data explain each other ("your chart explains exactly why"). Give it a short evocative title-phrase if it fits.
+5. Keep it grounded in the ONE most interesting real thing — don't try to cover every data point. Punchy and specific beats comprehensive.
 
 Guardrails:
 - Everything has to trace back to the real data given — never invent a placement, aspect, sign, retrograde, or nakshatra that isn't actually there. Confidence in tone does not mean license to make things up; state real things confidently, don't invent things to sound more dramatic.
@@ -225,7 +227,7 @@ ${priorReading ? `The reading they already received: "${priorReading}"\n\n` : ""
     const completion = await groq.chat.completions.create({
       model: "openai/gpt-oss-120b",
       reasoning_effort: "low",
-      messages: [{ role: "system", content: withVoice(systemPrompt, profile?.content_voice_sample) }, ...messages],
+      messages: [{ role: "system", content: withVoice(`${systemPrompt}\n\n${ADHD_BRIEF}\n${ADHD_CHART_NOTE}`, profile?.content_voice_sample) }, ...messages],
       temperature: 0.7,
       max_tokens: 500,
     });
@@ -395,7 +397,7 @@ async function handleReading(req, res) {
       model: "openai/gpt-oss-120b",
       reasoning_effort: "low",
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: `${systemPrompt}\n\n${ADHD_BRIEF}\n${ADHD_CHART_NOTE}` },
         { role: "user", content: userContent },
       ],
       temperature: 0.7,

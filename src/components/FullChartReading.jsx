@@ -2,6 +2,36 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Loader2, RefreshCw, Sparkles, Star } from "lucide-react";
 import { getFullChartReading, saveFullChartReading } from "../lib/db.js";
 
+// Items are {title, blueprint, synthesis}; older saved readings are plain strings.
+function ReadingItem({ item, dot }) {
+  if (typeof item === "string") {
+    return (
+      <div className="flex items-start gap-2 text-sm text-cream/90">
+        <span className={`mt-1.5 w-1 h-1 rounded-full ${dot} shrink-0`} />
+        {item}
+      </div>
+    );
+  }
+  if (!item || typeof item !== "object") return null;
+  return (
+    <div className="flex flex-col gap-1 rounded-xl bg-line/30 p-3">
+      {item.title && <span className="text-sm text-cream font-medium">{String(item.title)}</span>}
+      {item.blueprint && (
+        <p className="text-xs text-muted leading-relaxed">
+          <span className="text-clay">The Blueprint: </span>
+          {String(item.blueprint)}
+        </p>
+      )}
+      {item.synthesis && (
+        <p className="text-sm text-cream/90 leading-relaxed">
+          <span className="text-clay text-xs">The Synthesis: </span>
+          {String(item.synthesis)}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function FullChartReading({ profile }) {
   const [open, setOpen] = useState(false);
   const [reading, setReading] = useState(undefined); // undefined = not loaded yet, null = loaded but none exists
@@ -105,10 +135,7 @@ export default function FullChartReading({ profile }) {
                     Strengths
                   </span>
                   {reading.strengths.map((s, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm text-cream/90">
-                      <span className="text-clay mt-1.5 w-1 h-1 rounded-full bg-clay shrink-0" />
-                      {s}
-                    </div>
+                    <ReadingItem key={i} item={s} dot="bg-clay" />
                   ))}
                 </div>
               )}
@@ -117,10 +144,7 @@ export default function FullChartReading({ profile }) {
                 <div className="flex flex-col gap-1.5 pt-2 border-t border-line">
                   <span className="text-xs uppercase tracking-[0.2em] text-earth">Growth edges</span>
                   {reading.growth_edges.map((s, i) => (
-                    <div key={i} className="flex items-start gap-2 text-sm text-cream/90">
-                      <span className="text-earth mt-1.5 w-1 h-1 rounded-full bg-earth shrink-0" />
-                      {s}
-                    </div>
+                    <ReadingItem key={i} item={s} dot="bg-earth" />
                   ))}
                 </div>
               )}
