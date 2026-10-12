@@ -147,6 +147,9 @@ export default async function handler(req, res) {
         // first/by default. description is the underlying astrology
         // detail — shown only if the person taps to see "why."
         guidance: supportLine(w.best.mode, area),
+        // Short real-world example on its own, so the UI can show it once per
+        // group of days instead of repeating the full sentence on every day.
+        example: realWorldExample(w.best.mode, area),
         description: describeAspect(w.best.transitBody, w.best.aspect, w.best.natalBody, w.best.mode),
         // Hour-level resolution from the Moon's real motion that day — only
         // included when the math actually found something; never padded.
