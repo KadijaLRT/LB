@@ -5,8 +5,6 @@ import QuickActions from "../components/QuickActions.jsx";
 import CoachResponse from "../components/CoachResponse.jsx";
 import MicroTaskList from "../components/MicroTaskList.jsx";
 import { extractStepsFromReply } from "../lib/extractSteps.js";
-import { listGoals, listJobApplications } from "../lib/db.js";
-import { summarizeGoalsProgress } from "../lib/goalProgress.js";
 
 export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAddTask, onContentSaved, onViewContent }) {
   const [vibe, setVibe] = useState("");
@@ -21,7 +19,6 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
   const [candidateSteps, setCandidateSteps] = useState([]);
   const [addedSteps, setAddedSteps] = useState({});
   const [addingStep, setAddingStep] = useState(false);
-  const [goalsProgress, setGoalsProgress] = useState("");
 
   useEffect(() => {
     // Genuinely live: refetches on a timer while this tab is open, not just
@@ -61,17 +58,6 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
     };
   }, [profile?.sun_sign, profile?.moon_sign, profile?.rising_sign, profile?.natal_chart_notes, profile?.content_voice_sample]);
 
-  useEffect(() => {
-    if (!profile?.id) return;
-    listGoals(profile.id)
-      .then(async (goals) => {
-        const needsJobApps = goals.some((g) => g.type === "salary");
-        const jobApps = needsJobApps ? await listJobApplications(profile.id).catch(() => []) : [];
-        setGoalsProgress(summarizeGoalsProgress(goals, jobApps));
-      })
-      .catch((err) => console.error("Couldn't load goals for coach context:", err));
-  }, [profile?.id]);
-
   async function ask(promptOverride) {
     const message = promptOverride ? `${promptOverride}: ${input || "(no extra context)"}` : input;
     setLoading(true);
@@ -98,9 +84,7 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
                 moon: profile.moon_sign,
                 rising: profile.rising_sign,
                 location: profile.birth_location,
-                goals: profile.core_goals,
                 natal_chart_notes: profile.natal_chart_notes,
-                goals_progress: goalsProgress || undefined,
                 voice_sample: profile.content_voice_sample || undefined,
                 personality_profile: profile.personality_profile || undefined,
               }

@@ -6,29 +6,13 @@ import {
   getTodayBlueprint,
   upsertTodayBlueprint,
   appendMicroTask,
-  getPrimaryAccount,
-  getWeekSpend,
-  updateAccountBudget,
 } from "./db.js";
 
 export function useKadijaData() {
   const [profile, setProfile] = useState(null);
   const [blueprint, setBlueprint] = useState(null);
-  const [account, setAccount] = useState(null);
-  const [weekSpend, setWeekSpend] = useState(0);
   const [ready, setReady] = useState(false);
   const [dbError, setDbError] = useState("");
-
-  const refreshSpend = useCallback(async (acct) => {
-    const target = acct || account;
-    if (!target) return;
-    try {
-      const spend = await getWeekSpend(target.id);
-      setWeekSpend(spend);
-    } catch (err) {
-      console.error(err);
-    }
-  }, [account]);
 
   useEffect(() => {
     if (!supabase) {
@@ -39,13 +23,8 @@ export function useKadijaData() {
       try {
         const p = await getOrCreateProfile();
         setProfile(p);
-        const [bp, acct] = await Promise.all([
-          getTodayBlueprint(p.id),
-          getPrimaryAccount(p.id),
-        ]);
+        const bp = await getTodayBlueprint(p.id);
         setBlueprint(bp);
-        setAccount(acct);
-        if (acct) refreshSpend(acct);
       } catch (err) {
         console.error(err);
         setDbError("Couldn't reach Supabase. Check .env and schema setup.");
@@ -53,19 +32,7 @@ export function useKadijaData() {
         setReady(true);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const refreshAccount = useCallback(async () => {
-    if (!profile) return;
-    try {
-      const acct = await getPrimaryAccount(profile.id);
-      setAccount(acct);
-      if (acct) refreshSpend(acct);
-    } catch (err) {
-      console.error(err);
-    }
-  }, [profile, refreshSpend]);
 
   const setMicroTasks = useCallback(
     async (tasks) => {
@@ -108,33 +75,18 @@ export function useKadijaData() {
       if (!profile) throw new Error("Still loading your profile — try again in a moment.");
       const p = await updateProfile(profile.id, patch);
       setProfile(p);
-      // FinancePulse/FinancialHubTab read from financial_accounts.weekly_spend_limit,
-      // not user_profile.weekly_budget — these were two disconnected fields.
-      // Keep them in sync so editing Settings actually changes what's displayed.
-      if (patch.weekly_budget != null && account) {
-        try {
-          const updatedAccount = await updateAccountBudget(account.id, patch.weekly_budget);
-          setAccount(updatedAccount);
-        } catch (err) {
-          console.error("Couldn't sync weekly budget to account:", err);
-        }
-      }
     },
-    [profile, account]
+    [profile]
   );
 
   return {
     profile,
     blueprint,
-    account,
-    weekSpend,
     ready,
     dbError,
     setFocus,
     setMicroTasks,
     addMicroTask,
     saveProfileFields,
-    refreshSpend,
-    refreshAccount,
   };
 }

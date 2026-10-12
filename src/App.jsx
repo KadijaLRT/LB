@@ -2,15 +2,13 @@ import { useState } from "react";
 import TabBar from "./components/TabBar.jsx";
 import ActionCenterTab from "./tabs/ActionCenterTab.jsx";
 import ContentEngineTab from "./tabs/ContentEngineTab.jsx";
-import FinancialHubTab from "./tabs/FinancialHubTab.jsx";
 import BlueprintTab from "./tabs/BlueprintTab.jsx";
 import { useKadijaData } from "./lib/useKadijaData.js";
-import { logExpense, saveScript } from "./lib/db.js";
+import { saveScript } from "./lib/db.js";
 
 const TAB_TITLES = {
   action: "Action Center",
   content: "Content Engine",
-  finance: "Financial Hub",
   blueprint: "Blueprint & Chart",
 };
 
@@ -18,25 +16,14 @@ export default function App() {
   const {
     profile,
     blueprint,
-    account,
-    weekSpend,
     ready,
     dbError,
     setMicroTasks,
     addMicroTask,
     saveProfileFields,
-    refreshSpend,
   } = useKadijaData();
 
   const [tab, setTab] = useState("action");
-
-  async function handleLogExpense({ amount, category, note }) {
-    if (!account) {
-      throw new Error("Your account isn't ready yet — try again in a moment.");
-    }
-    await logExpense(account.id, { amount, category, note });
-    await refreshSpend(account);
-  }
 
   async function handleScriptSaved(dump, result) {
     if (!profile) throw new Error("Still loading your profile — try again in a moment.");
@@ -81,14 +68,6 @@ export default function App() {
           />
         )}
         {tab === "content" && <ContentEngineTab profile={profile} onSaved={handleScriptSaved} />}
-        {tab === "finance" && (
-          <FinancialHubTab
-            profile={profile}
-            account={account}
-            weekSpend={weekSpend}
-            onLogExpense={handleLogExpense}
-          />
-        )}
         {tab === "blueprint" && <BlueprintTab profile={profile} onSave={saveProfileFields} />}
 
         {!ready && <p className="text-xs text-muted">Loading your blueprint…</p>}

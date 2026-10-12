@@ -22,8 +22,6 @@ const FIELDS = [
   { key: "birth_time", label: "Birth time", type: "time", section: "Birth data" },
   { key: "birth_location", label: "Birth location", type: "text", section: "Birth data" },
   { key: "birth_utc_offset", label: "Timezone at birth, UTC offset (e.g. -5)", type: "number", section: "Birth data" },
-  { key: "weekly_budget", label: "Weekly budget ($)", type: "number", section: "Finance" },
-  { key: "core_goals", label: "Core goals / life vision (one per line)", type: "textarea", section: "Goals" },
   {
     key: "natal_chart_notes",
     label: "Full natal chart (paste it — Sun/Moon/Rising are pulled from this automatically, no need to enter them separately)",
@@ -87,7 +85,7 @@ export default function SettingsPage({ profile, onSave }) {
       Object.assign(patch, derived);
       // Empty strings on date/time/numeric columns make Postgres reject the
       // WHOLE update, not just that field — coerce blanks to null instead.
-      const NUMERIC_FIELDS = ["weekly_budget", "birth_utc_offset"];
+      const NUMERIC_FIELDS = ["birth_utc_offset"];
       Object.keys(patch).forEach((key) => {
         if (patch[key] === "") {
           patch[key] = null;

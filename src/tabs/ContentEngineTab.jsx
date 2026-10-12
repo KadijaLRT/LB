@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Mic, ListChecks, CalendarDays } from "lucide-react";
+import { Mic, ListChecks, CalendarDays, Briefcase } from "lucide-react";
 import SubTabBar from "../components/SubTabBar.jsx";
 import ContentCoach from "../components/ContentCoach.jsx";
 import ContentEngine from "../components/ContentEngine.jsx";
 import NicheHooks from "../components/NicheHooks.jsx";
 import ContentQueue from "../components/ContentQueue.jsx";
 import PostingCalendar from "../components/PostingCalendar.jsx";
+import ConsultingBuilder from "../components/ConsultingBuilder.jsx";
 
 const SUB_TABS = [
   { key: "create", label: "Create", icon: Mic },
   { key: "queue", label: "Queue", icon: ListChecks },
   { key: "calendar", label: "Calendar", icon: CalendarDays },
+  { key: "consulting", label: "Consulting", icon: Briefcase },
 ];
 
 export default function ContentEngineTab({ profile, onSaved }) {
@@ -42,6 +44,8 @@ export default function ContentEngineTab({ profile, onSaved }) {
       {subTab === "queue" && <ContentQueue profile={profile} refreshKey={queueTick} />}
 
       {subTab === "calendar" && <PostingCalendar profile={profile} refreshKey={queueTick} />}
+
+      {subTab === "consulting" && <ConsultingBuilder profile={profile} />}
     </div>
   );
 }
