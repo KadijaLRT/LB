@@ -13,7 +13,8 @@
 
 import Groq from "groq-sdk";
 import { withVoice } from "./_voice.js";
-import { currentPlacements, ELEMENT_BY_SIGN, parseNatalLongitudes, currentTransitAspects } from "./_ephemeris.js";
+import { degreeNote } from "./_degrees.js";
+import { signForLongitude, currentPlacements, ELEMENT_BY_SIGN, parseNatalLongitudes, currentTransitAspects } from "./_ephemeris.js";
 
 const MOOD_BY_ELEMENT = {
   fire: [
@@ -76,7 +77,7 @@ const VIBE_SYSTEM_PROMPT = `You write a single short "today's astrological vibe"
 
 Hard rules:
 - ONE to two short sentences MAX. Under 35 words total.
-- Ground it in the ONE real fact given — don't invent anything, don't add other planets or aspects not mentioned.
+- Ground it in the ONE real fact given (a degree theory note attached to it is part of that fact) — don't invent anything, don't add other planets or aspects not mentioned.
 - Do NOT mechanically state raw positions as a checklist ("Sun is in X, Moon is in Y") — that's exactly the repetitive, mad-lib-sounding pattern to avoid. Weave the real fact into one natural, flowing thought instead.
 - Plain everyday language, no astrology jargon left unexplained — no bare "orb," "transiting," "natal," "applying," "separating."
 - Vary your sentence structure and word choice naturally — don't default to the same "X is [verb]-ing your Y" shape every time, write it the way a person actually would.
@@ -93,7 +94,21 @@ Output ONLY the line itself. No quotes, no preamble, no explanation.`;
 // Sun/Mercury/Venus/Mars every few days), plus the Moon's current sign.
 const FAST_BODIES = ["Moon", "Sun", "Mercury", "Venus", "Mars"];
 
-async function generatePersonalVibe(natalLongitudes, placements, now, voiceSample) {
+// Degree theory note for the natal planet being touched, so the daily line
+// is shaped by her actual degrees too (floor of the real degree).
+function degreeSentence(natalLongitudes, body) {
+  if (natalLongitudes[body] == null) return "";
+  const w = signForLongitude(natalLongitudes[body]);
+  const note = degreeNote(Math.floor(w.degreeInSign));
+  return note ? ` Degree theory on that natal ${body} (${w.degreeInSign.toFixed(1)}° ${w.sign}): ${note}. Fold it in only if it fits naturally, as a tendency.` : "";
+}
+
+function personalitySentence(personality) {
+  const t = typeof personality === "string" ? personality.trim().slice(0, 300) : "";
+  return t ? ` Their self-reported personality profile: ${t}. Fold it into the same thought only if it genuinely lines up with the fact above.` : "";
+}
+
+async function generatePersonalVibe(natalLongitudes, placements, now, voiceSample, personality) {
   // Short lookahead (6h): the 3-day lookahead made the Moon's applying or
   // separating trend meaningless, since it travels ~39 degrees in 3 days.
   const aspects = currentTransitAspects(natalLongitudes, now, 0.25).filter((a) => FAST_BODIES.includes(a.transitBody));
@@ -111,11 +126,11 @@ async function generatePersonalVibe(natalLongitudes, placements, now, voiceSampl
     const isBuilding = chosen.trend.startsWith("applying");
     factLine = `Date: ${dateLabel}. Transiting ${chosen.transitBody} is making a real ${chosen.aspect} to this person's natal ${chosen.natalBody} (${
       isBuilding ? "building toward exact" : "already past its peak, easing off"
-    }). The Moon is currently in ${moonSign}.`;
+    }). The Moon is currently in ${moonSign}.${degreeSentence(natalLongitudes, chosen.natalBody)}${personalitySentence(personality)}`;
   } else {
     // No close fast-body aspect: still ground it in something that changes,
     // the Moon's sign, rather than returning one fixed sentence every day.
-    factLine = `Date: ${dateLabel}. Nothing is tightly aligned with this person's chart right now. The Moon is currently in ${moonSign} (${ELEMENT_BY_SIGN[moonSign]} element), so the day's mood comes from that.`;
+    factLine = `Date: ${dateLabel}. Nothing is tightly aligned with this person's chart right now. The Moon is currently in ${moonSign} (${ELEMENT_BY_SIGN[moonSign]} element), so the day's mood comes from that.${personalitySentence(personality)}`;
   }
 
   if (!process.env.GROQ_API_KEY) {
@@ -156,7 +171,7 @@ export default async function handler(req, res) {
     // Never let a CDN or browser reuse yesterday's line.
     res.setHeader("Cache-Control", "no-store, max-age=0");
 
-    const { sun, moon, rising, natal_chart_notes, for_date, voice_sample } = req.body || {};
+    const { sun, moon, rising, natal_chart_notes, for_date, voice_sample, personality_profile } = req.body || {};
     const natal = { sun: sun || undefined, moon: moon || undefined, rising: rising || undefined };
 
     // Pinned to noon UTC of the given date when for_date is sent (stable
@@ -174,7 +189,7 @@ export default async function handler(req, res) {
 
     if (Object.keys(natalLongitudes).length > 0) {
       try {
-        vibe = await generatePersonalVibe(natalLongitudes, placements, now, voice_sample);
+        vibe = await generatePersonalVibe(natalLongitudes, placements, now, voice_sample, personality_profile);
         if (vibe) personalized = true;
         else failureReason = "generation_failed";
       } catch (err) {

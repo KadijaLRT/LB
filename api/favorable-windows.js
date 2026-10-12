@@ -1,4 +1,5 @@
-import { parseNatalLongitudes, findFavorableWindows, moonWindowsForDay } from "./_ephemeris.js";
+import { degreeNote } from "./_degrees.js";
+import { signForLongitude, toSidereal, getNakshatra, parseNatalLongitudes, findFavorableWindows, moonWindowsForDay } from "./_ephemeris.js";
 
 const AREA_KEY_BODIES = {
   career: ["Sun", "Saturn", "Mars", "Mercury", "Jupiter"],
@@ -93,6 +94,24 @@ function supportLine(mode, area) {
   return `In plain terms: today's got real friction in it — ${example}. It's not a bad day, just one where things take more push than usual.`;
 }
 
+// Chart-depth detail for the natal planet a day's energy touches: its
+// degree theory note and Vedic nakshatra, from the real natal longitude.
+function natalDetail(natalLongitudes, body, personality) {
+  if (natalLongitudes[body] == null) return "";
+  const w = signForLongitude(natalLongitudes[body]);
+  const parts = [`Your natal ${body} is at ${w.degreeInSign.toFixed(1)}° ${w.sign}`];
+  try {
+    const { name, pada } = getNakshatra(toSidereal(natalLongitudes[body], new Date()));
+    parts.push(`${name} nakshatra in Vedic (pada ${pada})`);
+  } catch {
+    // Vedic detail is optional; skip if it can't be computed.
+  }
+  const note = degreeNote(Math.floor(w.degreeInSign));
+  const base = parts.join(", ") + ".";
+  const who = typeof personality === "string" && personality.trim() ? ` Your profile: ${personality.trim().slice(0, 140)}.` : "";
+  return (note ? `${base} Degree theory: ${note}.` : base) + who;
+}
+
 function fmtTime(d) {
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
@@ -151,6 +170,7 @@ export default async function handler(req, res) {
         // group of days instead of repeating the full sentence on every day.
         example: realWorldExample(w.best.mode, area),
         description: describeAspect(w.best.transitBody, w.best.aspect, w.best.natalBody, w.best.mode),
+        chart_detail: natalDetail(natalLongitudes, w.best.natalBody, profile?.personality_profile),
         // Hour-level resolution from the Moon's real motion that day — only
         // included when the math actually found something; never padded.
         hourly: dayWindows.map((hw) => ({

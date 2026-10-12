@@ -125,19 +125,6 @@ export default function FullChartReading({ profile }) {
                 </div>
               )}
 
-              {reading.vedic_notes && (
-                <div className="pt-2 border-t border-line flex flex-col gap-1">
-                  <span className="text-xs uppercase tracking-[0.2em] text-muted">Vedic layer</span>
-                  <p className="text-sm text-cream/90 leading-relaxed">{reading.vedic_notes}</p>
-                </div>
-              )}
-
-              {reading.personality_notes && (
-                <div className="pt-2 border-t border-line flex flex-col gap-1">
-                  <span className="text-xs uppercase tracking-[0.2em] text-muted">Personality profile</span>
-                  <p className="text-sm text-cream/90 leading-relaxed">{reading.personality_notes}</p>
-                </div>
-              )}
             </div>
           )}
 

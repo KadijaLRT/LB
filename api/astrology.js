@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { withVoice } from "./_voice.js";
+import { degreeNote } from "./_degrees.js";
 import {
   currentPlacements,
   parseNatalLongitudes,
@@ -45,6 +46,7 @@ How to write this:
 Guardrails:
 - Everything has to trace back to the real data given — never invent a placement, aspect, sign, retrograde, or nakshatra that isn't actually there. Confidence in tone does not mean license to make things up; state real things confidently, don't invent things to sound more dramatic.
 - NEVER use a placement or aspect to declare that a person — this user or anyone in their life — is abusive, violent, dangerous, "toxic," a cheater, or has any other harmful character trait. A real, confident astrology voice talks about energy, patterns, timing, and tendencies — not verdicts on someone's character or warnings that a type of person is dangerous. This holds no matter how confidently real horoscope content sometimes states things; that specific move is off-limits here regardless of register.
+- If "Degree theory notes" are given, they are real data about her own placements (a modern tradition, label it "degree theory"). Use the one that fits ${area} best, including heavy degrees stated plainly with attribution as a tendency, never a prediction. Never claim a degree that isn't given.
 - If the Western/Vedic comparison is genuinely the most interesting real thing, use it; if it isn't, ignore it — most readings shouldn't force it in.
 - Casual, direct, a little lowercase-energy even if not literally lowercase — contractions, real talk, not a formal report. Some personality and edge is good.
 - Never a repeated flowery metaphor ("gentle hand," "soft kiss," "bright boost") — that's the OPPOSITE of what you're going for; those sound like a greeting card, not an astrology account.
@@ -121,6 +123,21 @@ function extractJson(raw) {
 // single shared copy both modes use (it was duplicated identically across
 // the two original files). Chat's own grounding-builder and handler follow.
 
+
+// Degree theory lines for the area's key natal bodies, computed from the
+// real natal longitude (floor, so 28.97 is not mislabeled as 29).
+function natalDegreeLines(natalLongitudes, bodies) {
+  return bodies
+    .filter((b) => natalLongitudes[b] != null)
+    .map((b) => {
+      const w = signForLongitude(natalLongitudes[b]);
+      const note = degreeNote(Math.floor(w.degreeInSign));
+      return note ? `Natal ${b} ${w.degreeInSign.toFixed(1)}° ${w.sign}: ${note}` : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 // Same real-aspect grounding used by the reading itself — recomputed fresh
 // so follow-up answers stay tied to the actual chart, not just whatever
 // the model remembers saying a moment ago.
@@ -134,7 +151,7 @@ function buildGroundingBlock(area, profile) {
       .map(([b, { sign }]) => `${b} in ${sign}`)
       .join(", ");
     const personalityBlock = profile?.personality_profile
-      ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — reference ONLY if genuinely relevant, never force it in): ${profile.personality_profile}`
+      ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — weave it in with the chart wherever it genuinely lines up): ${profile.personality_profile}`
       : "";
     return `NOTE: only sign-level data available, no exact degrees — don't claim precise timing or orbs.\nNatal: Sun ${profile?.sun_sign || "?"}, Moon ${profile?.moon_sign || "?"}, Rising ${profile?.rising_sign || "?"}\nToday's transiting signs: ${positionsLine}${personalityBlock}`;
   }
@@ -164,10 +181,15 @@ function buildGroundingBlock(area, profile) {
     : "";
 
   const personalityBlock = profile?.personality_profile
-    ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — reference ONLY if genuinely relevant to what they're asking, never force it in): ${profile.personality_profile}`
+    ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — weave it in with the chart whenever it lines up with or contrasts with what they're asking, skip it only when there is no real link): ${profile.personality_profile}`
     : "";
 
-  return `Real computed current aspects:\n${chosen.map((a) => `Transiting ${a.transitBody} ${a.aspect} natal ${a.natalBody} — ${a.trend}`).join("\n")}${houseBlock}${natalBlock}${personalityBlock}`;
+  const degLines = natalDegreeLines(natalLongitudes, keyBodies || ["Sun", "Moon", "Mercury", "Venus", "Mars"]);
+  const degreeBlock = degLines
+    ? `\n\nDegree theory notes on this chart's own placements (a modern tradition by Nikola Stojanovic, label it "degree theory" when used, tendency not prediction; use when it genuinely fits what they said):\n${degLines}`
+    : "";
+
+  return `Real computed current aspects:\n${chosen.map((a) => `Transiting ${a.transitBody} ${a.aspect} natal ${a.natalBody} — ${a.trend}`).join("\n")}${houseBlock}${natalBlock}${degreeBlock}${personalityBlock}`;
 }
 
 async function handleChat(req, res) {
@@ -345,7 +367,12 @@ async function handleReading(req, res) {
         ? `\n\nWestern vs. Vedic side-by-side for this area — both real, both computed from the same actual planetary positions, only the zodiac reference point differs (Vedic uses the Lahiri ayanamsa correction):\n${comparisonLines}${ascendantSiderealLon == null ? "\n(No Ascendant found in the chart notes, so whole-sign Vedic houses can't be computed — sign and nakshatra comparisons above are still real and usable.)" : ""}`
         : "";
 
-      dataBlock = `Today's exact transiting positions: ${positionsLine}\n\nActive transit-to-natal aspects relevant to ${area} (real computed data, sorted tightest first):\n${aspectLines}${houseBlock}${natalAspectBlock}${vedicBlock}`;
+      const degLines = natalDegreeLines(natalLongitudes, keyBodies);
+      const degreeBlock = degLines
+        ? `\n\nDegree theory notes on this chart's own ${area} placements (modern tradition by Nikola Stojanovic; call it "degree theory" when you use it; a tendency layered on the placement, not a prediction; weave in when it adds something real):\n${degLines}`
+        : "";
+
+      dataBlock = `Today's exact transiting positions: ${positionsLine}\n\nActive transit-to-natal aspects relevant to ${area} (real computed data, sorted tightest first):\n${aspectLines}${houseBlock}${natalAspectBlock}${degreeBlock}${vedicBlock}`;
     } else {
       // No parseable natal degrees — fall back to sign-level data only.
       // Explicitly tell the model this is lower precision so it doesn't
@@ -359,7 +386,7 @@ async function handleReading(req, res) {
 
     const systemPrompt = scenario?.trim() ? buildScenarioPrompt(area, scenario.trim()) : buildStandardPrompt(area);
     const personalityBlock = profile?.personality_profile
-      ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — reference ONLY if it genuinely sharpens this specific reading, never force it in; most readings should not mention it at all):\n${profile.personality_profile}`
+      ? `\n\nTheir real, self-reported personality profile (MBTI, Enneagram, Human Design, etc. — this is part of the same picture as the chart, so weave it into the same sentence as the placement it lines up with or contrasts with (for example "Mars in Aries in the 3rd, which fits an Enneagram 8 who says it straight") whenever it lines up with or contrasts with the placement you are discussing; skip it only when there is no real link):\n${profile.personality_profile}`
       : "";
     const userContent = withVoice(dataBlock + personalityBlock, profile?.content_voice_sample);
 

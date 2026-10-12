@@ -75,6 +75,7 @@ function DayDetail({ w, today }) {
       {showWhy && (
         <div className="flex flex-col gap-1 border-l-2 border-line/80 pl-2">
           <span className="text-[11px] text-muted leading-relaxed">{w.description}</span>
+          {w.chart_detail && <span className="text-[11px] text-muted leading-relaxed">{w.chart_detail}</span>}
           {best && <span className="text-[11px] text-muted/80 leading-relaxed">{best.description}</span>}
         </div>
       )}

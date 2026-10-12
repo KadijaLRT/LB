@@ -39,6 +39,7 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
           rising: profile?.rising_sign,
           natal_chart_notes: profile?.natal_chart_notes,
           voice_sample: profile?.content_voice_sample,
+          personality_profile: profile?.personality_profile,
         }),
       })
         .then((r) => r.json())
@@ -56,7 +57,7 @@ export default function ActionCenterTab({ profile, blueprint, onSaveTasks, onAdd
       cancelled = true;
       clearInterval(interval);
     };
-  }, [profile?.sun_sign, profile?.moon_sign, profile?.rising_sign, profile?.natal_chart_notes, profile?.content_voice_sample]);
+  }, [profile?.sun_sign, profile?.moon_sign, profile?.rising_sign, profile?.natal_chart_notes, profile?.content_voice_sample, profile?.personality_profile]);
 
   async function ask(promptOverride) {
     const message = promptOverride ? `${promptOverride}: ${input || "(no extra context)"}` : input;
